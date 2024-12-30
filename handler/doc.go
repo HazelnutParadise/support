@@ -112,7 +112,7 @@ func DocHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// 解析並執行模板
-	tmpl, err := template.ParseFiles("template/doc.html", "template/header.html")
+	tmpl, err := template.ParseFiles("templates/doc.html", "templates/header.html")
 	if err != nil {
 		log.Println("Template parse error:", err)
 		http.Error(w, "Template parse error", http.StatusInternalServerError)

@@ -50,7 +50,7 @@ func IndexHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// 解析模板檔
-	tmpl, err := template.ParseFiles("template/index.html", "template/header.html")
+	tmpl, err := template.ParseFiles("templates/index.html", "templates/header.html")
 	if err != nil {
 		log.Println(err)
 		http.Error(w, "Template parsing error", http.StatusInternalServerError)
