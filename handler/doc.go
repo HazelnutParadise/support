@@ -26,7 +26,7 @@ func DocHandler(w http.ResponseWriter, r *http.Request) {
 
 	// 去呼叫遠端 API 拿文件資料
 	url := "https://server2.hazelnut-paradise.com/supportDocs/doc?doc_id=" + docID
-	resp, err := http.Get(url)
+	resp, err := httpClient.Get(url)
 	if err != nil {
 		log.Println("Error fetching doc:", err)
 		renderErrorPage(w, "無法取得文件") // 可自行實作一個簡單的 error page

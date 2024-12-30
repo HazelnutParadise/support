@@ -35,7 +35,7 @@ func SearchHandler(w http.ResponseWriter, r *http.Request) {
 
 	// 2. 呼叫後端 API
 	apiURL := "https://server2.hazelnut-paradise.com/supportDocs/searchDocs?keyword=" + url.QueryEscape(query)
-	resp, err := http.Get(apiURL)
+	resp, err := httpClient.Get(apiURL)
 	if err != nil {
 		// 若取得失敗，顯示錯誤
 		msg := fmt.Sprintf("無法取得搜索結果：%v", err)

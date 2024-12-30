@@ -69,7 +69,7 @@ func IndexHandler(w http.ResponseWriter, r *http.Request) {
 // 示範抓分類列表
 func fetchCategories() ([]obj.Category, error) {
 	url := "https://server2.hazelnut-paradise.com/supportDocs/categoriesList"
-	resp, err := http.Get(url)
+	resp, err := httpClient.Get(url)
 	if err != nil {
 		return nil, err
 	}
