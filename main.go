@@ -27,7 +27,12 @@ func main() {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", handler.IndexHandler)
 	mux.HandleFunc("/index", func(w http.ResponseWriter, r *http.Request) {
-		http.Redirect(w, r, "/", http.StatusMovedPermanently)
+		originalQuery := r.URL.RawQuery
+		newPath := "/"
+		if originalQuery != "" {
+			newPath += "?" + originalQuery
+		}
+		http.Redirect(w, r, newPath, http.StatusMovedPermanently)
 	})
 	mux.HandleFunc("/doc", handler.DocHandler)
 	mux.HandleFunc("/search", handler.SearchHandler)
