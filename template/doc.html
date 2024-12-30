@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="https://src.hazelnut-paradise.com/HazelnutParadise-icon.ico">
+    <title>{{ .PageTitle }}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+
+    <style>
+        html {
+            font-family: 'Noto Sans TC', sans-serif;
+            font-size: 18px;
+        }
+
+        aside {
+            min-width: 300px;
+        }
+
+        .date-container {
+            display: flex;
+            flex-direction: column;
+            align-items: end;
+        }
+        .date-container h6 {
+            margin: 0;
+        }
+        
+        .content {
+            padding: 0 20px;
+            width: 100%;
+            flex: 1;
+            font-size: 20px;
+        }
+        .content h1 {
+            font-size: 2em;
+            font-weight: 700;
+            margin-top: 10px;
+        }
+        .content h2 {
+            font-size: 1.5em;
+            font-weight: 700;
+            margin-top: 25px;
+            margin-bottom: 25px;
+        }
+        .content h3 {
+            font-size: 1.25em;
+            font-weight: 500;
+            margin-top: 20px;
+            margin-bottom: 20px;
+        }
+        .content h4 {
+            font-size: 1.125em;
+            font-weight: 500;
+            margin-top: 15px;
+            margin-bottom: 15px;
+        }
+        .content h5 {
+            font-size: 1em;
+            font-weight: 600;
+            margin-top: 10px;
+            margin-bottom: 10px;
+        }
+        .content h6 {
+            font-size: 0.875em;
+            margin: 0;
+            font-weight: 700;
+            margin-top: 10px;
+            margin-bottom: 10px;
+        }
+        .content p {
+            font-size: 1em;
+        }
+        .content em {
+            font-style: italic;
+        }
+        .content hr {
+            width: 100%;
+        }
+        .content a {
+            color: rgb(37 99 235);
+            text-decoration: underline;
+        }
+
+        .content ul,
+        .content ol {
+            list-style: disc;
+            padding-left: 40px;
+            margin-bottom: 10px;
+        }
+
+        .content ul ul,
+        .content ul ol,
+        .content ol ul,
+        .content ol ol {
+            list-style-type: circle;
+        }
+
+        .content ol {
+            list-style-type: decimal;
+        }
+
+        .content ol ol {
+            list-style-type: lower-alpha;
+        }
+
+        .content blockquote {
+            background-color: mistyrose;
+            padding: 5px 20px;
+            margin-left: 15px;
+            margin-right: 15px;
+        }
+        .content img {
+            max-width: 100%;
+        }
+        
+        @media screen and (max-width: 860px) {
+            main, aside {
+                margin: 0;
+            }
+            .content {
+                padding: 0 5px;
+            }
+            .content img {
+                max-width: 100%;
+            }
+        }
+        .accordion.active {
+            background-color: rgb(89, 80, 98);
+            color: white;
+        }
+
+        /* 深色模式 */
+        @media (prefers-color-scheme: dark) {
+            body {
+                background-color: #333 !important;
+                color: #f0f0f0;
+            }
+            aside, main {
+                background-color: #1e1e1e !important;
+            }
+
+            .content blockquote {
+                background-color: #adc0a6 !important;
+                color: #121212 !important;
+            }
+
+            aside a, main a {
+                color: #4dabf7 !important;
+            }
+            aside .accordion {
+                background-color: #333 !important;
+            }
+            aside .accordion:hover {
+                background-color: #444 !important;
+            }
+            aside .accordion.active {
+                background-color: rgb(89, 80, 98) !important;
+            }
+
+            .text-gray-600 {
+                color: #b0b0b0 !important;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-200">
+    {{ template "header" . }}
+
+    <div class="container mx-auto py-8 px-1 flex flex-col md:flex-row">
+        <aside class="w-full md:w-1/4 bg-white p-6 rounded-lg shadow-lg mb-8 md:mb-0 mr-2">
+            <div class="sidebar">
+                <!-- 類別列表將通過 JavaScript 動態加載 -->
+            </div>
+        </aside>
+        <main class="w-full md:w-3/4 bg-white p-6 rounded-lg shadow-lg">
+            <div class="content">
+                {{ if .DocFound }}
+                    <h2 class="text-2xl font-bold mb-0 mt-0 pt-0">{{ .DocTitle }}</h2>
+                    <div class="date-container text-gray-600 mb-4">
+                        <h6>發布日期：{{ .PublishDate }}</h6>
+                        <h6>最後編輯日期：{{ .LastEditDate }}</h6>
+                    </div>
+                    <hr class="mb-4">
+                    <!-- Markdown 轉完的 HTML -->
+                    <div class="prose">{{ printf "%s" .HTMLContent }}</div>
+                {{ else }}
+                    <p>文章未找到。</p>
+                    <!-- 若要顯示錯誤訊息，可以把 .HTMLContent 當成錯誤訊息一起丟出 -->
+                    <div class="prose">{{ .HTMLContent }}</div>
+                {{ end }}
+            </div>
+            <hr class="my-4">
+            <footer>
+                <h5 class="text-lg">
+                    沒有找到答案嗎？ 
+                    <a href="https://apps.hazelnut-paradise.com/mail" class="text-blue-500 hover:underline">
+                        聯繫我們
+                    </a>
+                </h5>
+            </footer>
+        </main>
+    </div>
+    <a href="#"><i class="fas fa-arrow-up fixed bottom-4 right-4 text-2xl text-gray-600"></i></a>
+
+    <script>
+        // 與原本 doc.php 相同，載入 categories
+        async function loadCategoryArticles(categoryId, panel, categoryName) {
+            try {
+                const response = await fetch(`https://server2.hazelnut-paradise.com/supportDocs/docsList?category_id=${categoryId}`);
+                const data = await response.json();
+                if (data.status === 'success') {
+                    const articles = data.result.map(doc => 
+                        `<a href='doc?id=${doc.id}&category=${categoryName}&title=${doc.title}' class='block py-2 text-blue-500 hover:underline'>${doc.title}</a>`
+                    ).join('');
+                    panel.innerHTML = articles;
+                } else {
+                    panel.innerHTML = '<p>無法取得文章列表。</p>';
+                }
+            } catch (error) {
+                console.error('Error loading articles:', error);
+            }
+        }
+
+        async function loadCategories() {
+            try {
+                const response = await fetch('https://server2.hazelnut-paradise.com/supportDocs/categoriesList');
+                const data = await response.json();
+                if (data.status === 'success') {
+                    const sidebar = document.querySelector('.sidebar');
+                    const currentCategoryId = "{{ .CurrentCategoryID }}"; 
+                    data.result.forEach(category => {
+                        const categoryName = category.name;
+                        const categoryId = category.id;
+                        const categoryDiv = document.createElement('div');
+                        categoryDiv.classList.add('category', 'mb-4');
+                        const button = document.createElement('button');
+                        button.classList.add('accordion', 'w-full', 'text-left', 'py-2', 'px-4', 'bg-gray-200', 'rounded-lg', 'hover:bg-gray-300', 'focus:outline-none');
+                        button.innerText = categoryName;
+                        const panel = document.createElement('div');
+                        panel.classList.add('panel', 'mt-2', 'pl-4', 'hidden');
+                        panel.dataset.category = categoryId;
+
+                        categoryDiv.appendChild(button);
+                        categoryDiv.appendChild(panel);
+                        sidebar.appendChild(categoryDiv);
+
+                        button.addEventListener('click', async function() {
+                            this.classList.toggle("active");
+                            if (panel.style.display === "block") {
+                                panel.style.display = "none";
+                            } else {
+                                document.querySelectorAll('.panel').forEach(p => p.style.display = 'none');
+                                document.querySelectorAll('.accordion').forEach(a => a.classList.remove('active'));
+                                this.classList.add('active');
+                                panel.style.display = "block";
+                                loadCategoryArticles(categoryId, panel, categoryName);
+                            }
+                        });
+
+                        if (Number(currentCategoryId) === categoryId) {
+                            button.classList.add('active');
+                            panel.style.display = "block";
+                            loadCategoryArticles(categoryId, panel, categoryName);
+                        }
+                    });
+                } else {
+                    document.querySelector('.sidebar').innerHTML = '<p>無法取得分類列表。</p>';
+                }
+            } catch (error) {
+                console.error('Error loading categories:', error);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            await loadCategories();
+        });
+    </script>
+</body>
+</html>
