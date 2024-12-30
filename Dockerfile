@@ -17,7 +17,7 @@ WORKDIR /app
 
 # 從 builder 階段複製編譯後的二進位檔案到當前階段的工作目錄
 COPY --from=builder /app/app .
-COPY --from=builder /app/templates .
+COPY --from=builder /app/templates /app/templates
 
 # 設定容器啟動時執行的命令
 CMD ["/app/app"]
