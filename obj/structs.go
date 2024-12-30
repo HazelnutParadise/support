@@ -33,4 +33,5 @@ type DocPageData struct {
 	HTMLContent       string // 把轉成HTML後的內容存這
 	CurrentCategory   string // 給前端JS用
 	CurrentCategoryID string
+	Categories        []Category
 }

@@ -173,7 +173,16 @@
     <div class="container mx-auto py-8 px-1 flex flex-col md:flex-row">
         <aside class="w-full md:w-1/4 bg-white p-6 rounded-lg shadow-lg mb-8 md:mb-0 mr-2">
             <div class="sidebar">
-                <!-- 類別列表將通過 JavaScript 動態加載 -->
+                {{ range .Categories }}
+                    <div class="category mb-4">
+                        <button class="accordion w-full text-left py-2 px-4 bg-gray-200 rounded-lg hover:bg-gray-300 focus:outline-none">
+                            {{ .Name }}
+                        </button>
+                        <div class="panel mt-2 pl-4 hidden" data-category="{{ .ID }}">
+                            <!-- 文章列表將通過 JavaScript 動態加載 -->
+                        </div>
+                    </div>
+                {{ end }}
             </div>
         </aside>
         <main class="w-full md:w-3/4 bg-white p-6 rounded-lg shadow-lg">
@@ -225,58 +234,33 @@
             }
         }
 
-        async function loadCategories() {
-            try {
-                const response = await fetch('https://server2.hazelnut-paradise.com/supportDocs/categoriesList');
-                const data = await response.json();
-                if (data.status === 'success') {
-                    const sidebar = document.querySelector('.sidebar');
-                    const currentCategoryId = "{{ .CurrentCategoryID }}"; 
-                    data.result.forEach(category => {
-                        const categoryName = category.name;
-                        const categoryId = category.id;
-                        const categoryDiv = document.createElement('div');
-                        categoryDiv.classList.add('category', 'mb-4');
-                        const button = document.createElement('button');
-                        button.classList.add('accordion', 'w-full', 'text-left', 'py-2', 'px-4', 'bg-gray-200', 'rounded-lg', 'hover:bg-gray-300', 'focus:outline-none');
-                        button.innerText = categoryName;
-                        const panel = document.createElement('div');
-                        panel.classList.add('panel', 'mt-2', 'pl-4', 'hidden');
-                        panel.dataset.category = categoryId;
+        document.querySelectorAll('.accordion').forEach(button => {
+            button.addEventListener('click', async function() {
+                this.classList.toggle("active");
+                const panel = this.nextElementSibling;
+                const categoryId = panel.dataset.category;
+                const categoryName = this.innerText;
 
-                        categoryDiv.appendChild(button);
-                        categoryDiv.appendChild(panel);
-                        sidebar.appendChild(categoryDiv);
-
-                        button.addEventListener('click', async function() {
-                            this.classList.toggle("active");
-                            if (panel.style.display === "block") {
-                                panel.style.display = "none";
-                            } else {
-                                document.querySelectorAll('.panel').forEach(p => p.style.display = 'none');
-                                document.querySelectorAll('.accordion').forEach(a => a.classList.remove('active'));
-                                this.classList.add('active');
-                                panel.style.display = "block";
-                                loadCategoryArticles(categoryId, panel, categoryName);
-                            }
-                        });
-
-                        if (Number(currentCategoryId) === categoryId) {
-                            button.classList.add('active');
-                            panel.style.display = "block";
-                            loadCategoryArticles(categoryId, panel, categoryName);
-                        }
-                    });
+                if (panel.style.display === "block") {
+                    panel.style.display = "none";
                 } else {
-                    document.querySelector('.sidebar').innerHTML = '<p>無法取得分類列表。</p>';
+                    document.querySelectorAll('.panel').forEach(p => p.style.display = 'none');
+                    document.querySelectorAll('.accordion').forEach(a => a.classList.remove('active'));
+                    this.classList.add('active');
+                    panel.style.display = "block";
+                    await loadCategoryArticles(categoryId, panel, categoryName);
                 }
-            } catch (error) {
-                console.error('Error loading categories:', error);
-            }
-        }
+            });
+        });
 
         document.addEventListener('DOMContentLoaded', async () => {
-            await loadCategories();
+            const currentCategoryId = "{{ .CurrentCategoryID }}";
+            if (currentCategoryId) {
+                const activeButton = document.querySelector(`.accordion + .panel[data-category="${currentCategoryId}"]`).previousElementSibling;
+                if (activeButton) {
+                    activeButton.click();
+                }
+            }
         });
     </script>
 </body>

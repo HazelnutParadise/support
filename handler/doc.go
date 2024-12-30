@@ -54,6 +54,32 @@ func DocHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	categoryListUrl := "http://192.168.1.109:5002/supportDocs/categoriesList"
+	categoryListResp, err := httpClient.Get(categoryListUrl)
+	if err != nil {
+		log.Println("Error fetching category list:", err)
+		renderErrorPage(w, "無法取得分類列表")
+		return
+	}
+	defer categoryListResp.Body.Close()
+
+	categoryListBody, err := io.ReadAll(categoryListResp.Body)
+	if err != nil {
+		log.Println("Error reading category list response:", err)
+		renderErrorPage(w, "無法讀取分類列表回應")
+		return
+	}
+
+	var categoryListData struct {
+		Status string         `json:"status"`
+		Result []obj.Category `json:"result"`
+	}
+	if err := json.Unmarshal(categoryListBody, &categoryListData); err != nil {
+		log.Println("Category list JSON parse error:", err)
+		renderErrorPage(w, "分類列表格式錯誤")
+		return
+	}
+
 	// 準備要給模板的資料
 	data := obj.DocPageData{
 		PageTitle:         "支援中心 - 榛果繽紛樂",
@@ -64,6 +90,7 @@ func DocHandler(w http.ResponseWriter, r *http.Request) {
 		HTMLContent:       "",
 		CurrentCategory:   currentCategory,
 		CurrentCategoryID: "", // 稍後在成功時再填
+		Categories:        categoryListData.Result,
 	}
 
 	if resp.StatusCode != 200 {
