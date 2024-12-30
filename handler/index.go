@@ -94,7 +94,7 @@ func fetchCategories() ([]obj.Category, error) {
 // 示範抓文件列表
 func fetchDocs(categoryID string) ([]obj.Doc, error) {
 	url := "https://server2.hazelnut-paradise.com/supportDocs/docsList?category_id=" + categoryID
-	resp, err := http.Get(url)
+	resp, err := httpClient.Get(url)
 	if err != nil {
 		return nil, err
 	}
