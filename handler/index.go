@@ -68,7 +68,7 @@ func IndexHandler(w http.ResponseWriter, r *http.Request) {
 
 // 示範抓分類列表
 func fetchCategories() ([]obj.Category, error) {
-	url := "https://server2.hazelnut-paradise.com/supportDocs/categoriesList"
+	url := "http://192.168.1.109:5002/supportDocs/categoriesList"
 	resp, err := httpClient.Get(url)
 	if err != nil {
 		return nil, err
@@ -93,7 +93,7 @@ func fetchCategories() ([]obj.Category, error) {
 
 // 示範抓文件列表
 func fetchDocs(categoryID string) ([]obj.Doc, error) {
-	url := "https://server2.hazelnut-paradise.com/supportDocs/docsList?category_id=" + categoryID
+	url := "http://192.168.1.109:5002/supportDocs/docsList?category_id=" + categoryID
 	resp, err := httpClient.Get(url)
 	if err != nil {
 		return nil, err

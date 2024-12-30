@@ -25,7 +25,7 @@ func DocHandler(w http.ResponseWriter, r *http.Request) {
 	// currentTitle := r.URL.Query().Get("title")
 
 	// 去呼叫遠端 API 拿文件資料
-	url := "https://server2.hazelnut-paradise.com/supportDocs/doc?doc_id=" + docID
+	url := "http://192.168.1.109:5002/supportDocs/doc?doc_id=" + docID
 	resp, err := httpClient.Get(url)
 	if err != nil {
 		log.Println("Error fetching doc:", err)
