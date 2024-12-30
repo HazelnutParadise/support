@@ -1,0 +1,5 @@
+services:
+  app:
+    image: support:latest
+    ports:
+      - "1236:3000"
