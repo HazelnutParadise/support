@@ -3,3 +3,4 @@ services:
     image: support:latest
     ports:
       - "1236:3000"
+    restart: always
