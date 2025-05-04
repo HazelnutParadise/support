@@ -59,7 +59,9 @@
                         <button type="button" class="btn btn-sm btn-outline-secondary me-1"
                             onclick="insertMarkdown('[連結文字](連結網址)')">連結</button>
                         <button type="button" class="btn btn-sm btn-outline-secondary me-1"
-                            onclick="insertImageMarkdown()">圖片</button>
+                            onclick="insertMarkdown('![圖片描述](圖片網址)')">圖片</button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary me-1"
+                            onclick="insertImageMarkdown()">上傳圖片</button>
                         <button type="button" class="btn btn-sm btn-outline-secondary me-1"
                             onclick="insertMarkdown('```\n代碼區塊\n```')">代碼</button>
                         <button type="button" class="btn btn-sm btn-outline-secondary me-1"
@@ -269,6 +271,13 @@
 
             // 使用 Marked.js 渲染 Markdown
             previewContainer.innerHTML = marked.parse(textarea.value);
+            
+            // 限制預覽區域中所有圖片的寬度
+            const previewImages = previewContainer.querySelectorAll('img');
+            previewImages.forEach(img => {
+                img.style.maxWidth = '100%';
+                img.style.height = 'auto';
+            });
         }
     }
 </script>
