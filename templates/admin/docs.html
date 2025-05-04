@@ -1,0 +1,229 @@
+{{define "content"}}
+<div class="card">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2 class="card-title">文件管理</h2>
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addDocModal">
+                新增文件
+            </button>
+        </div>
+
+        {{if .Message}}
+        <div class="alert alert-{{.MessageType}} alert-dismissible fade show">
+            {{.Message}}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        {{end}}
+
+        <div class="mb-3">
+            <form method="get" action="/admin/docs" class="row g-3">
+                <div class="col-auto">
+                    <select name="category_id" class="form-select">
+                        <option value="">所有分類</option>
+                        {{range .Categories}}
+                        <option value="{{.ID}}" {{if eq $.FilterCategoryID .ID}}selected{{end}}>{{.Name}}</option>
+                        {{end}}
+                    </select>
+                </div>
+                <div class="col-auto">
+                    <select name="filter" class="form-select">
+                        <option value="all" {{if eq $.Filter "all" }}selected{{end}}>所有文件</option>
+                        <option value="published" {{if eq $.Filter "published" }}selected{{end}}>已發布</option>
+                        <option value="drafts" {{if eq $.Filter "drafts" }}selected{{end}}>草稿</option>
+                    </select>
+                </div>
+                <div class="col-auto">
+                    <button type="submit" class="btn btn-secondary">篩選</button>
+                </div>
+            </form>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-striped table-hover">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>標題</th>
+                        <th>分類</th>
+                        <th>狀態</th>
+                        <th>發布日期</th>
+                        <th>最後更新</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {{range .Docs}}
+                    <tr>
+                        <td>{{.ID}}</td>
+                        <td>
+                            {{.Title}}
+                        </td>
+                        <td>
+                            {{range $.Categories}}
+                            {{if eq .ID $.Doc.CategoryID}}{{.Name}}{{end}}
+                            {{end}}
+                        </td>
+                        <td>
+                            {{if .IsDraft}}
+                            <span class="badge bg-warning text-dark">草稿</span>
+                            {{else}}
+                            <span class="badge bg-success">已發布</span>
+                            {{end}}
+                        </td>
+                        <td>{{.PublishDate}}</td>
+                        <td>{{.LastEditDate.Format "2006-01-02"}}</td>
+                        <td>
+                            <a href="/admin/docs/edit?id={{.ID}}" class="btn btn-sm btn-warning">編輯</a>
+                            <button class="btn btn-sm btn-danger delete-btn" data-id="{{.ID}}" data-title="{{.Title}}"
+                                data-bs-toggle="modal" data-bs-target="#deleteDocModal">刪除</button>
+                        </td>
+                    </tr>
+                    {{else}}
+                    <tr>
+                        <td colspan="7" class="text-center">暫無文件資料</td>
+                    </tr>
+                    {{end}}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- 新增文件 Modal -->
+<div class="modal fade" id="addDocModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">新增文件</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form action="/admin/docs/add" method="post">
+                <div class="modal-body">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="docTitle" class="form-label">文件標題</label>
+                            <input type="text" class="form-control" id="docTitle" name="title" required>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="docCategory" class="form-label">所屬分類</label>
+                            <select class="form-select" id="docCategory" name="category_id" required>
+                                <option value="">請選擇分類</option>
+                                {{range .Categories}}
+                                <option value="{{.ID}}">{{.Name}}</option>
+                                {{end}}
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="publishDate" class="form-label">發布日期</label>
+                            <input type="date" class="form-control" id="publishDate" name="publish_date"
+                                value="{{.Today}}">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="checkbox" id="addIsDraft" name="is_draft"
+                                value="true">
+                            <label class="form-check-label" for="addIsDraft">
+                                儲存為草稿 <small class="text-muted">(草稿不會顯示在前台頁面)</small>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="docContent" class="form-label">文件內容 (Markdown)</label>
+                        <div class="d-flex mb-2">
+                            <button type="button" class="btn btn-sm btn-outline-secondary me-1"
+                                onclick="insertMarkdown('**粗體**')">粗體</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary me-1"
+                                onclick="insertMarkdown('*斜體*')">斜體</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary me-1"
+                                onclick="insertMarkdown('# 標題')">標題</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary me-1"
+                                onclick="insertMarkdown('- 列表項目')">列表</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary me-1"
+                                onclick="insertMarkdown('[連結文字](連結網址)')">連結</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary me-1"
+                                onclick="insertMarkdown('![圖片說明](圖片網址)')">圖片</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary me-1"
+                                onclick="insertMarkdown('```\n代碼區塊\n```')">代碼</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary me-1"
+                                onclick="insertMarkdown('> 引用文字')">引用</button>
+                        </div>
+                        <textarea class="form-control" id="docContent" name="content" rows="15" required></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer d-flex justify-content-between">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <div>
+                        <button type="submit" class="btn btn-primary">儲存</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- 刪除文件 Modal -->
+<div class="modal fade" id="deleteDocModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">確認刪除</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>確定要刪除文件「<span id="deleteDocTitle"></span>」嗎？</p>
+                <p class="text-danger">此操作無法復原！</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <form action="/admin/docs/delete" method="post" class="d-inline">
+                    <input type="hidden" id="deleteDocId" name="id">
+                    <button type="submit" class="btn btn-danger">確認刪除</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function insertMarkdown(text) {
+        const textarea = document.getElementById('docContent');
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        const selectedText = textarea.value.substring(start, end);
+
+        // 替換選中的文字為 Markdown 標記
+        if (text.includes('**') && selectedText) {
+            textarea.value = textarea.value.substring(0, start) +
+                `**${selectedText}**` +
+                textarea.value.substring(end);
+        } else if (text.includes('*') && selectedText) {
+            textarea.value = textarea.value.substring(0, start) +
+                `*${selectedText}*` +
+                textarea.value.substring(end);
+        } else if (text.includes('[') && selectedText) {
+            textarea.value = textarea.value.substring(0, start) +
+                `[${selectedText}](連結網址)` +
+                textarea.value.substring(end);
+        } else {
+            // 直接插入標記
+            textarea.value = textarea.value.substring(0, start) +
+                text +
+                textarea.value.substring(end);
+        }
+
+        // 設置光標位置
+        textarea.focus();
+        textarea.selectionStart = start + text.length;
+        textarea.selectionEnd = start + text.length;
+    }
+
+    // 設置刪除模態框的數據
+    document.querySelectorAll('.delete-btn').forEach(button => {
+        button.addEventListener('click', function () {
+            document.getElementById('deleteDocId').value = this.getAttribute('data-id');
+            document.getElementById('deleteDocTitle').textContent = this.getAttribute('data-title');
+        });
+    });
+</script>
+{{end}}

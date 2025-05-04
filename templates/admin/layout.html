@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>管理面板 - 支援中心</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css">
+    <style>
+        .sidebar {
+            min-height: calc(100vh - 56px);
+            background-color: #f8f9fa;
+            padding: 20px;
+            box-shadow: inset -1px 0 0 rgba(0, 0, 0, .1);
+        }
+
+        .content {
+            padding: 20px;
+        }
+
+        .nav-link {
+            color: #333;
+            border-radius: 5px;
+            margin-bottom: 5px;
+            transition: all 0.2s;
+        }
+
+        .nav-link:hover {
+            background-color: #e9ecef;
+        }
+
+        .nav-link.active {
+            background-color: #0d6efd;
+            color: white;
+        }
+
+        .navbar-brand {
+            font-weight: bold;
+        }
+
+        .dropdown-item {
+            padding: 8px 24px;
+        }
+    </style>
+</head>
+
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/admin">支援中心管理面板</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/">返回前台</a>
+                    </li>
+                </ul>
+                <div class="dropdown">
+                    <button class="btn btn-light dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                        管理員：{{.Username}}
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item" href="/admin/change-password">修改密碼</a></li>
+                        <li>
+                            <hr class="dropdown-divider">
+                        </li>
+                        <li><a class="dropdown-item" href="/admin/logout">登出</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-md-2 sidebar">
+                <ul class="nav nav-pills flex-column">
+                    <li class="nav-item">
+                        <a class="nav-link {{if eq .Active " dashboard"}}active{{end}}" href="/admin">儀表板</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {{if eq .Active " categories"}}active{{end}}"
+                            href="/admin/categories">分類管理</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {{if eq .Active " docs"}}active{{end}}" href="/admin/docs">文件管理</a>
+                    </li>
+                </ul>
+            </div>
+            <div class="col-md-10 content">
+                {{template "content" .}}
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+
+</html>

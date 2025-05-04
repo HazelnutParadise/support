@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="https://src.hazelnut-paradise.com/HazelnutParadise-icon.ico">
+    <title>404 頁面未找到 | 支援中心 - 榛果繽紛樂</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        html {
+            font-family: 'Noto Sans TC', sans-serif;
+            font-size: 18px;
+        }
+
+        /* 深色模式 */
+        @media (prefers-color-scheme: dark) {
+            body {
+                background-color: #333 !important;
+                color: #f0f0f0 !important;
+            }
+
+            .bg-white {
+                background-color: #1e1e1e !important;
+            }
+
+            .text-gray-600 {
+                color: #b0b0b0 !important;
+            }
+
+            .bg-blue-100 {
+                background-color: #2c2c54 !important;
+            }
+
+            .text-blue-500 {
+                color: #4dabf7 !important;
+            }
+
+            /* 深色模式下的按鈕顏色 */
+            .btn-back {
+                background-color: #4a5568 !important;
+                color: #f0f0f0 !important;
+            }
+
+            .btn-back:hover {
+                background-color: #2d3748 !important;
+            }
+
+            .btn-home {
+                background-color: #3182ce !important;
+            }
+
+            .btn-home:hover {
+                background-color: #2c5282 !important;
+            }
+        }
+    </style>
+</head>
+
+<body class="bg-gray-200 flex flex-col min-h-screen">
+    {{ template "header" . }}
+
+    <main class="container mx-auto py-12 px-4 flex-grow flex items-center justify-center">
+        <div class="bg-white p-8 rounded-lg shadow-lg max-w-2xl w-full text-center">
+            <div class="mb-6">
+                <i class="fas fa-exclamation-circle text-6xl text-yellow-500 mb-4"></i>
+                <h1 class="text-4xl font-bold mb-2">404</h1>
+                <h2 class="text-2xl font-semibold mb-6">頁面未找到</h2>
+                <p class="text-gray-600 mb-8">抱歉，您要尋找的頁面不存在或已被移除。</p>
+            </div>
+
+            <div class="bg-blue-100 p-6 rounded-lg mb-8">
+                <h3 class="text-xl font-semibold mb-4">您可以嘗試：</h3>
+                <ul class="text-left list-disc list-inside space-y-2">
+                    <li>檢查網址是否正確</li>
+                    <li>返回上一頁並嘗試其他連結</li>
+                    <li>前往首頁，尋找您需要的資訊</li>
+                </ul>
+            </div>
+
+            <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                <a href="javascript:history.back()"
+                    class="btn btn-back px-6 py-3 bg-gray-500 text-white hover:bg-gray-600 rounded-lg transition duration-300 shadow-md">
+                    <i class="fas fa-arrow-left mr-2"></i>返回上一頁
+                </a>
+                <a href="/"
+                    class="btn btn-home px-6 py-3 bg-indigo-600 text-white hover:bg-indigo-700 rounded-lg transition duration-300 shadow-md font-medium">
+                    <i class="fas fa-home mr-2"></i>前往首頁
+                </a>
+            </div>
+        </div>
+    </main>
+</body>
+
+</html>
