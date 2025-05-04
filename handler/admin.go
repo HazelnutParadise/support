@@ -1,9 +1,15 @@
 package handler
 
 import (
+	"encoding/json"
+	"fmt"
+	"io"
 	"log"
+	"math/rand"
 	"net/http"
 	"net/url"
+	"os"
+	"path"
 	"strconv"
 	"strings"
 	"support/db"
@@ -1121,4 +1127,240 @@ func AdminChangePasswordHandler(w http.ResponseWriter, r *http.Request) {
 
 	// 不支持的HTTP方法
 	http.Error(w, "不支持的HTTP方法", http.StatusMethodNotAllowed)
+}
+
+// ----- 圖片相關處理器 -----
+
+// AdminImagesHandler 處理圖片管理頁面
+func AdminImagesHandler(w http.ResponseWriter, r *http.Request) {
+	// 獲取當前的管理員會話
+	session, err := getAdminSession(r)
+	if err != nil {
+		log.Println("Session error:", err)
+		http.Redirect(w, r, "/admin/login", http.StatusSeeOther)
+		return
+	}
+
+	// 獲取所有圖片
+	images, err := db.GetAllImages()
+	if err != nil {
+		log.Println("Error fetching images:", err)
+	}
+
+	// 檢查是否有訊息要顯示
+	message := r.URL.Query().Get("message")
+	messageType := r.URL.Query().Get("type")
+	if messageType == "" && message != "" {
+		messageType = "info" // 預設訊息類型
+	}
+
+	// 準備模板資料
+	data := obj.ImageListData{
+		Images:   images,
+		Message:  message,
+		MsgType:  messageType,
+		Username: session.Username,
+	}
+
+	// 創建自定義模板函數
+	funcMap := template.FuncMap{
+		"divideSize": func(size int64) float64 {
+			return float64(size) / 1024.0 // 轉換為KB
+		},
+	}
+
+	// 解析模板
+	tmpl, err := template.New("layout.html").Funcs(funcMap).ParseFiles(
+		"templates/admin/layout.html",
+		"templates/admin/images.html",
+	)
+	if err != nil {
+		log.Println("Template parse error:", err)
+		http.Error(w, "Template parse error", http.StatusInternalServerError)
+		return
+	}
+
+	// 渲染模板
+	err = tmpl.Execute(w, data)
+	if err != nil {
+		log.Println("Template execute error:", err)
+		http.Error(w, "Template execute error", http.StatusInternalServerError)
+		return
+	}
+}
+
+// AdminImageUploadHandler 處理圖片上傳
+func AdminImageUploadHandler(w http.ResponseWriter, r *http.Request) {
+	// 如果不是 POST 請求，返回錯誤
+	if r.Method != http.MethodPost {
+		http.Error(w, "僅支持 POST 請求", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// 檢查會話
+	_, err := getAdminSession(r)
+	if err != nil {
+		http.Error(w, "未授權", http.StatusUnauthorized)
+		return
+	}
+
+	// 解析表單，限制內存使用為 32MB，超過會存到臨時文件
+	err = r.ParseMultipartForm(32 << 20)
+	if err != nil {
+		log.Println("Parse form error:", err)
+		http.Error(w, "表單解析錯誤", http.StatusBadRequest)
+		return
+	}
+
+	// 獲取上傳的文件
+	file, header, err := r.FormFile("image")
+	if err != nil {
+		log.Println("Getting form file error:", err)
+		http.Error(w, "獲取文件失敗", http.StatusBadRequest)
+		return
+	}
+	defer file.Close()
+
+	// 檢查文件類型
+	contentType := header.Header.Get("Content-Type")
+	if !strings.HasPrefix(contentType, "image/") {
+		http.Error(w, "僅支持圖片文件", http.StatusBadRequest)
+		return
+	}
+
+	// 獲取文件擴展名
+	extension := ""
+	if strings.HasSuffix(header.Filename, ".jpg") || strings.HasSuffix(header.Filename, ".jpeg") {
+		extension = ".jpg"
+	} else if strings.HasSuffix(header.Filename, ".png") {
+		extension = ".png"
+	} else if strings.HasSuffix(header.Filename, ".gif") {
+		extension = ".gif"
+	} else if strings.HasSuffix(header.Filename, ".webp") {
+		extension = ".webp"
+	} else {
+		// 根據 MIME 類型推斷擴展名
+		switch contentType {
+		case "image/jpeg":
+			extension = ".jpg"
+		case "image/png":
+			extension = ".png"
+		case "image/gif":
+			extension = ".gif"
+		case "image/webp":
+			extension = ".webp"
+		default:
+			extension = ".jpg" // 默認 jpg
+		}
+	}
+
+	// 生成唯一文件名
+	filename := generateUniqueFilename() + extension
+
+	// 確保上傳目錄存在
+	err = db.EnsureUploadDir()
+	if err != nil {
+		log.Println("Error creating upload directory:", err)
+		http.Error(w, "創建上傳目錄失敗", http.StatusInternalServerError)
+		return
+	}
+
+	// 創建文件路徑 (data/uploads/filename) - 實際存儲位置
+	filePath := path.Join(db.UploadStoragePath, filename)
+	dst, err := os.Create(filePath)
+	if err != nil {
+		log.Println("File creation error:", err)
+		http.Error(w, "創建文件失敗", http.StatusInternalServerError)
+		return
+	}
+	defer dst.Close()
+
+	// 複製上傳的文件內容到新文件
+	written, err := io.Copy(dst, file)
+	if err != nil {
+		log.Println("File copy error:", err)
+		http.Error(w, "保存文件失敗", http.StatusInternalServerError)
+		return
+	}
+
+	// 生成圖片 URL (相對路徑) - 為了與前端兼容，使用 /uploads/ 作為URL前綴
+	imageURL := db.UploadURLPath + filename
+
+	// 創建圖片記錄
+	image := obj.Image{
+		Filename:    header.Filename,
+		Path:        filePath,
+		URL:         imageURL,
+		Size:        written,
+		ContentType: contentType,
+		UploadTime:  time.Now(),
+	}
+
+	// 保存到資料庫
+	err = db.AddImage(&image)
+	if err != nil {
+		log.Println("Image DB save error:", err)
+		http.Error(w, "保存圖片記錄失敗", http.StatusInternalServerError)
+		return
+	}
+
+	// 根據請求來源返回不同的響應
+	source := r.FormValue("source")
+	if source == "editor" {
+		// 從編輯器上傳，返回 JSON 響應供編輯器使用
+		w.Header().Set("Content-Type", "application/json")
+		jsonResponse := map[string]interface{}{
+			"success": true,
+			"url":     imageURL,
+			"id":      image.ID,
+		}
+		json.NewEncoder(w).Encode(jsonResponse)
+	} else {
+		// 從圖片管理頁面上傳，重定向回圖片列表
+		redirectWithMessage(w, r, "/admin/images", "圖片上傳成功", "success")
+	}
+}
+
+// AdminImageDeleteHandler 處理圖片刪除
+func AdminImageDeleteHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Redirect(w, r, "/admin/images", http.StatusSeeOther)
+		return
+	}
+
+	// 解析表單
+	err := r.ParseForm()
+	if err != nil {
+		log.Println("Form parse error:", err)
+		redirectWithMessage(w, r, "/admin/images", "表單解析錯誤", "danger")
+		return
+	}
+
+	// 獲取圖片 ID
+	idStr := r.FormValue("id")
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		log.Println("Invalid image ID:", err)
+		redirectWithMessage(w, r, "/admin/images", "無效的圖片ID", "danger")
+		return
+	}
+
+	// 刪除圖片
+	err = db.DeleteImage(uint(id))
+	if err != nil {
+		log.Println("Error deleting image:", err)
+		redirectWithMessage(w, r, "/admin/images", "刪除圖片失敗: "+err.Error(), "danger")
+		return
+	}
+
+	// 重定向回圖片列表，並帶上成功訊息
+	redirectWithMessage(w, r, "/admin/images", "圖片已成功刪除", "success")
+}
+
+// 生成唯一的文件名
+func generateUniqueFilename() string {
+	// 使用時間戳和隨機數生成唯一文件名
+	timestamp := time.Now().UnixNano()
+	random := rand.Intn(10000)
+	return fmt.Sprintf("%d_%d", timestamp, random)
 }

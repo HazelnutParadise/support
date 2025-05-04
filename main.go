@@ -61,8 +61,18 @@ func main() {
 	}
 	fmt.Println("資料庫連接成功")
 
+	// 確保上傳目錄存在
+	err = db.EnsureUploadDir()
+	if err != nil {
+		log.Fatalf("創建上傳目錄失敗: %v", err)
+	}
+
 	// 設定路由
 	mux := http.NewServeMux()
+
+	// 靜態文件服務 - 提供上傳的圖片
+	// 修改靜態文件服務配置，將 /uploads/ 路徑映射到 data/uploads/ 目錄
+	mux.Handle("/uploads/", http.StripPrefix("/uploads/", http.FileServer(http.Dir(db.UploadStoragePath))))
 
 	// 前台路由
 	mux.HandleFunc("/", ExactPathIndexHandler)
@@ -96,6 +106,11 @@ func main() {
 	mux.HandleFunc("/admin/docs/delete", handler.AuthMiddleware(handler.AdminDocDeleteHandler))
 	// 添加密碼修改路由
 	mux.HandleFunc("/admin/change-password", handler.AuthMiddleware(handler.AdminChangePasswordHandler))
+
+	// 添加圖片相關路由
+	mux.HandleFunc("/admin/images", handler.AuthMiddleware(handler.AdminImagesHandler))
+	mux.HandleFunc("/admin/images/upload", handler.AuthMiddleware(handler.AdminImageUploadHandler))
+	mux.HandleFunc("/admin/images/delete", handler.AuthMiddleware(handler.AdminImageDeleteHandler))
 
 	// 創建一個自定義的 NotFound 處理器
 	notFoundWrapper := &CustomNotFoundHandler{Mux: mux}

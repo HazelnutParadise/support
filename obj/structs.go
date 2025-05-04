@@ -152,3 +152,23 @@ type DocPageData struct {
 	CurrentCategoryID string
 	Categories        []Category
 }
+
+// Image 圖片資料結構
+type Image struct {
+	ID          uint      `json:"id" gorm:"primaryKey"`
+	Filename    string    `json:"filename"`
+	Path        string    `json:"path"`
+	URL         string    `json:"url"`
+	Size        int64     `json:"size"`
+	ContentType string    `json:"content_type"`
+	UploadTime  time.Time `json:"upload_time" gorm:"autoCreateTime"`
+}
+
+// ImageListData 圖片列表頁面資料
+type ImageListData struct {
+	Images   []Image
+	Message  string
+	MsgType  string
+	Username string
+	Active   string // 添加 Active 字段，用於控制側邊欄選中狀態
+}

@@ -14,9 +14,16 @@ import (
 )
 
 const (
-	db_dir  = "data"            // Directory where the SQLite database file will be stored
-	db_file = "database.sqlite" // Name of the SQLite database file
+	DATA_DIR   = "data"            // Directory where the SQLite database file will be stored
+	DB_FILE    = "database.sqlite" // Name of the SQLite database file
+	UPLOAD_DIR = "uploads"         // Directory where uploaded files will be stored
 )
+
+// 保存文件的實際路徑
+var UploadStoragePath = path.Join(DATA_DIR, UPLOAD_DIR)
+
+// 圖片訪問的URL路徑
+var UploadURLPath = "/" + UPLOAD_DIR + "/"
 
 var db *gorm.DB // Global variable to hold the database connection
 
@@ -25,19 +32,19 @@ func DB() (*gorm.DB, error) {
 		return db, nil // Return the existing database connection if it exists
 	}
 	var err error
-	if _, err := os.Stat(db_dir); os.IsNotExist(err) {
-		err = os.Mkdir(db_dir, 0755) // Create the directory if it doesn't exist
+	if _, err := os.Stat(DATA_DIR); os.IsNotExist(err) {
+		err = os.Mkdir(DATA_DIR, 0755) // Create the directory if it doesn't exist
 		if err != nil {
 			return nil, err
 		}
 	}
-	db, err = gorm.Open(sqlite.Open(path.Join(db_dir, db_file)))
+	db, err = gorm.Open(sqlite.Open(path.Join(DATA_DIR, DB_FILE)))
 	if err != nil {
 		return nil, err
 	}
 
 	// 自動遷移所有資料結構
-	err = db.AutoMigrate(&obj.Category{}, &obj.Doc{}, &obj.User{}, &obj.AdminSession{})
+	err = db.AutoMigrate(&obj.Category{}, &obj.Doc{}, &obj.User{}, &obj.AdminSession{}, &obj.Image{})
 	if err != nil {
 		return nil, err
 	}
@@ -425,4 +432,81 @@ func CleanExpiredAdminSessions() error {
 
 	err = db.Exec("DELETE FROM admin_sessions WHERE expiry < ?", time.Now()).Error
 	return err
+}
+
+// ---- 圖片相關功能 ----
+
+// 圖片上傳目錄
+var uploadDir = UploadStoragePath
+
+// 確保上傳目錄存在
+func EnsureUploadDir() error {
+	if _, err := os.Stat(uploadDir); os.IsNotExist(err) {
+		return os.MkdirAll(uploadDir, 0755)
+	}
+	return nil
+}
+
+// 添加圖片記錄到資料庫
+func AddImage(image *obj.Image) error {
+	db, err := DB()
+	if err != nil {
+		return err
+	}
+	return db.Create(image).Error
+}
+
+// 獲取圖片記錄
+func GetImage(id uint) (obj.Image, error) {
+	db, err := DB()
+	if err != nil {
+		return obj.Image{}, err
+	}
+	var image obj.Image
+	result := db.First(&image, id)
+	return image, result.Error
+}
+
+// 獲取所有圖片
+func GetAllImages() ([]obj.Image, error) {
+	db, err := DB()
+	if err != nil {
+		return nil, err
+	}
+	var images []obj.Image
+	result := db.Order("upload_time DESC").Find(&images)
+	return images, result.Error
+}
+
+// 刪除圖片記錄和檔案
+func DeleteImage(id uint) error {
+	// 先獲取圖片記錄
+	image, err := GetImage(id)
+	if err != nil {
+		return err
+	}
+
+	// 刪除實體檔案
+	err = os.Remove(image.Path)
+	if err != nil && !os.IsNotExist(err) {
+		return err
+	}
+
+	// 從資料庫刪除記錄
+	db, err := DB()
+	if err != nil {
+		return err
+	}
+	return db.Delete(&obj.Image{}, id).Error
+}
+
+// 根據文件名搜尋圖片
+func SearchImagesByFilename(keyword string) ([]obj.Image, error) {
+	db, err := DB()
+	if err != nil {
+		return nil, err
+	}
+	var images []obj.Image
+	result := db.Where("filename LIKE ?", "%"+keyword+"%").Order("upload_time DESC").Find(&images)
+	return images, result.Error
 }
