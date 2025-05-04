@@ -10,6 +10,22 @@ type Category struct {
 	UpdateTime time.Time `json:"update_time" gorm:"autoUpdateTime"`
 }
 
+// User 管理員使用者
+type User struct {
+	ID       uint   `json:"id" gorm:"primaryKey"`
+	Username string `json:"username" gorm:"unique"`
+	Password string `json:"password"`
+}
+
+// AdminSession 管理員會話
+type AdminSession struct {
+	ID        uint      `json:"id" gorm:"primaryKey"`
+	SessionID string    `json:"session_id" gorm:"unique"`
+	Username  string    `json:"username"`
+	Expiry    time.Time `json:"expiry"`
+	CreatedAt time.Time `json:"created_at" gorm:"autoCreateTime"`
+}
+
 type IndexData struct {
 	Title             string
 	Categories        []Category

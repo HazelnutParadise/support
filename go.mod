@@ -1,6 +1,8 @@
 module support
 
-go 1.22.7
+go 1.23.0
+
+toolchain go1.24.1
 
 require (
 	github.com/HazelnutParadise/Go-Utils v0.7.10
@@ -16,7 +18,8 @@ require (
 	github.com/jinzhu/now v1.1.5 // indirect
 	github.com/mattn/go-isatty v0.0.17 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
-	golang.org/x/sys v0.7.0 // indirect
+	golang.org/x/crypto v0.37.0
+	golang.org/x/sys v0.32.0 // indirect
 	gorm.io/gorm v1.25.7 // indirect
 	modernc.org/libc v1.22.5 // indirect
 	modernc.org/mathutil v1.5.0 // indirect

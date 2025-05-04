@@ -4,14 +4,18 @@ import (
 	"os"
 	"path"
 	"support/obj"
+	"time"
+
+	"errors"
 
 	"github.com/glebarez/sqlite" // Pure go SQLite driver, checkout https://github.com/glebarez/sqlite for details
+	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
 
 const (
-	db_dir  = "data"        // Directory where the SQLite database file will be stored
-	db_file = "database.db" // Name of the SQLite database file
+	db_dir  = "data"            // Directory where the SQLite database file will be stored
+	db_file = "database.sqlite" // Name of the SQLite database file
 )
 
 var db *gorm.DB // Global variable to hold the database connection
@@ -33,11 +37,70 @@ func DB() (*gorm.DB, error) {
 	}
 
 	// 自動遷移所有資料結構
-	err = db.AutoMigrate(&obj.Category{}, &obj.Doc{})
+	err = db.AutoMigrate(&obj.Category{}, &obj.Doc{}, &obj.User{}, &obj.AdminSession{})
 	if err != nil {
 		return nil, err
 	}
+
+	// 檢查是否需要創建預設用戶
+	var count int64
+	db.Model(&obj.User{}).Count(&count)
+	if count == 0 {
+		// 創建一個預設使用者，預設用戶名和密碼都是 admin
+		hashedPassword, err := bcrypt.GenerateFromPassword([]byte("admin"), bcrypt.DefaultCost)
+		if err != nil {
+			return nil, err
+		}
+		defaultUser := &obj.User{
+			Username: "admin",
+			Password: string(hashedPassword), // 使用雜湊存儲密碼
+		}
+		db.Create(defaultUser)
+	}
+
 	return db, nil
+}
+
+// HashPassword 將密碼加密為雜湊值
+func HashPassword(password string) (string, error) {
+	bytes, err := bcrypt.GenerateFromPassword([]byte(password), 14)
+	if err != nil {
+		return "", err
+	}
+	return string(bytes), nil
+}
+
+// VerifyPassword 比較密碼和雜湊值
+func VerifyPassword(hashedPassword, password string) bool {
+	err := bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(password))
+	return err == nil
+}
+
+// ChangeUserPassword 修改用戶密碼
+func ChangeUserPassword(username, currentPassword, newPassword string) error {
+	user, err := GetUserByUsername(username)
+	if err != nil {
+		return err
+	}
+
+	// 驗證當前密碼
+	if !VerifyPassword(user.Password, currentPassword) {
+		return errors.New("當前密碼不正確")
+	}
+
+	// 雜湊新密碼
+	hashedPassword, err := HashPassword(newPassword)
+	if err != nil {
+		return err
+	}
+
+	// 更新密碼
+	db, err := DB()
+	if err != nil {
+		return err
+	}
+
+	return db.Model(&obj.User{}).Where("username = ?", username).Update("password", hashedPassword).Error
 }
 
 // GetCategoryList 獲取所有分類
@@ -222,4 +285,90 @@ func DeleteDoc(id uint) error {
 		return err
 	}
 	return db.Delete(&obj.Doc{}, id).Error
+}
+
+// GetUserByUsername 通過用戶名獲取用戶
+func GetUserByUsername(username string) (obj.User, error) {
+	db, err := DB()
+	if err != nil {
+		return obj.User{}, err
+	}
+	var user obj.User
+	result := db.Where("username = ?", username).First(&user)
+	return user, result.Error
+}
+
+// UpdateUserPassword 更新用戶密碼
+func UpdateUserPassword(userID uint, newPassword string) error {
+	// 對新密碼進行雜湊處理
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
+	if err != nil {
+		return err
+	}
+
+	db, err := DB()
+	if err != nil {
+		return err
+	}
+	return db.Model(&obj.User{}).Where("id = ?", userID).Update("password", string(hashedPassword)).Error
+}
+
+// AdminSession 相關的資料庫操作
+// 保存管理員會話到資料庫
+func SaveAdminSession(session *obj.AdminSession) error {
+	db, err := DB()
+	if err != nil {
+		return err
+	}
+
+	// 刪除該用戶之前的會話
+	err = db.Exec("DELETE FROM admin_sessions WHERE username = ?", session.Username).Error
+	if err != nil {
+		return err
+	}
+
+	// 插入新會話
+	result := db.Exec("INSERT INTO admin_sessions (session_id, username, expiry) VALUES (?, ?, ?)",
+		session.SessionID, session.Username, session.Expiry)
+	err = result.Error
+	return err
+}
+
+// 根據會話ID獲取管理員會話
+func GetAdminSession(sessionID string) (*obj.AdminSession, error) {
+	db, err := DB()
+	if err != nil {
+		return nil, err
+	}
+
+	var session obj.AdminSession
+	err = db.Raw("SELECT session_id, username, expiry FROM admin_sessions WHERE session_id = ?", sessionID).
+		Scan(&session).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return &session, nil
+}
+
+// 刪除管理員會話
+func DeleteAdminSession(sessionID string) error {
+	db, err := DB()
+	if err != nil {
+		return err
+	}
+
+	err = db.Exec("DELETE FROM admin_sessions WHERE session_id = ?", sessionID).Error
+	return err
+}
+
+// 清理過期的管理員會話
+func CleanExpiredAdminSessions() error {
+	db, err := DB()
+	if err != nil {
+		return err
+	}
+
+	err = db.Exec("DELETE FROM admin_sessions WHERE expiry < ?", time.Now()).Error
+	return err
 }

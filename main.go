@@ -77,17 +77,24 @@ func main() {
 	mux.HandleFunc("/doc", handler.DocHandler)
 	mux.HandleFunc("/search", handler.SearchHandler)
 
-	// 後台管理路由
-	mux.HandleFunc("/admin", handler.AdminDashboardHandler)
-	mux.HandleFunc("/admin/categories", handler.AdminCategoriesHandler)
-	mux.HandleFunc("/admin/categories/add", handler.AdminCategoryAddHandler)
-	mux.HandleFunc("/admin/categories/edit", handler.AdminCategoryEditHandler)
-	mux.HandleFunc("/admin/categories/delete", handler.AdminCategoryDeleteHandler)
-	mux.HandleFunc("/admin/docs", handler.AdminDocsHandler)
-	mux.HandleFunc("/admin/docs/add", handler.AdminDocAddHandler)
-	mux.HandleFunc("/admin/docs/edit", handler.AdminDocEditHandler)
-	mux.HandleFunc("/admin/docs/update", handler.AdminDocUpdateHandler)
-	mux.HandleFunc("/admin/docs/delete", handler.AdminDocDeleteHandler)
+	// 後台登入/登出路由 (不需要驗證)
+	mux.HandleFunc("/admin/login", handler.AdminLoginHandler)
+	mux.HandleFunc("/admin/logout", handler.AdminLogoutHandler)
+
+	// 後台管理路由 (需要身份驗證)
+	mux.HandleFunc("/admin", handler.AuthMiddleware(handler.AdminDashboardHandler))
+	mux.HandleFunc("/admin/dashboard", handler.AuthMiddleware(handler.AdminDashboardHandler))
+	mux.HandleFunc("/admin/categories", handler.AuthMiddleware(handler.AdminCategoriesHandler))
+	mux.HandleFunc("/admin/categories/add", handler.AuthMiddleware(handler.AdminCategoryAddHandler))
+	mux.HandleFunc("/admin/categories/edit", handler.AuthMiddleware(handler.AdminCategoryEditHandler))
+	mux.HandleFunc("/admin/categories/delete", handler.AuthMiddleware(handler.AdminCategoryDeleteHandler))
+	mux.HandleFunc("/admin/docs", handler.AuthMiddleware(handler.AdminDocsHandler))
+	mux.HandleFunc("/admin/docs/add", handler.AuthMiddleware(handler.AdminDocAddHandler))
+	mux.HandleFunc("/admin/docs/edit", handler.AuthMiddleware(handler.AdminDocEditHandler))
+	mux.HandleFunc("/admin/docs/update", handler.AuthMiddleware(handler.AdminDocUpdateHandler))
+	mux.HandleFunc("/admin/docs/delete", handler.AuthMiddleware(handler.AdminDocDeleteHandler))
+	// 添加密碼修改路由
+	mux.HandleFunc("/admin/change-password", handler.AuthMiddleware(handler.AdminChangePasswordHandler))
 
 	// 創建一個自定義的 NotFound 處理器
 	notFoundWrapper := &CustomNotFoundHandler{Mux: mux}
