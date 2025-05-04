@@ -1,142 +1,78 @@
 package handler
 
 import (
-	"encoding/json"
-	"fmt"
-	"io"
 	"log"
 	"net/http"
 	ur "net/url"
+	"strconv"
 	"strings"
 	"text/template"
 
 	"github.com/HazelnutParadise/Go-Utils/conv"
 	"github.com/yuin/goldmark"
 
+	"support/db"
 	"support/obj"
 )
 
-// docHandler 負責顯示單篇文件內容（原本的 doc.php）
+// docHandler 負責顯示單篇文件內容
 func DocHandler(w http.ResponseWriter, r *http.Request) {
 	// 從 query string 拿到 doc ID
-	docID := r.URL.Query().Get("id")
-	// 也許你有需要拿 category, title 之類
-	currentCategory := r.URL.Query().Get("category")
-	// currentTitle := r.URL.Query().Get("title")
+	docIDStr := r.URL.Query().Get("id")
+	docID, err := strconv.ParseUint(docIDStr, 10, 32)
+	if err != nil {
+		log.Println("Invalid doc ID:", err)
+		renderErrorPage(w, "文件 ID 無效")
+		return
+	}
 
-	// 去呼叫遠端 API 拿文件資料
-	url := "http://192.168.1.109:5002/supportDocs/doc?doc_id=" + docID
-	resp, err := httpClient.Get(url)
+	// 從本地資料庫獲取文檔
+	doc, err := db.GetDoc(uint(docID))
 	if err != nil {
 		log.Println("Error fetching doc:", err)
-		renderErrorPage(w, "無法取得文件") // 可自行實作一個簡單的 error page
-		return
-	}
-	defer resp.Body.Close()
-
-	// 把 body 讀出來
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		log.Println("Error reading doc response:", err)
-		renderErrorPage(w, "無法讀取文件回應")
+		renderErrorPage(w, "無法取得文件")
 		return
 	}
 
-	// 解析 JSON
-	var jsonData struct {
-		Status  string  `json:"status"`
-		Result  obj.Doc `json:"result"`
-		Message string  `json:"message"`
-	}
-	if err := json.Unmarshal(body, &jsonData); err != nil {
-		log.Println("JSON parse error:", err)
-		renderErrorPage(w, "文件格式錯誤")
-		return
-	}
-
-	categoryListUrl := "http://192.168.1.109:5002/supportDocs/categoriesList"
-	categoryListResp, err := httpClient.Get(categoryListUrl)
+	// 獲取分類列表
+	categories, err := db.GetCategoryList()
 	if err != nil {
 		log.Println("Error fetching category list:", err)
 		renderErrorPage(w, "無法取得分類列表")
 		return
 	}
-	defer categoryListResp.Body.Close()
 
-	categoryListBody, err := io.ReadAll(categoryListResp.Body)
-	if err != nil {
-		log.Println("Error reading category list response:", err)
-		renderErrorPage(w, "無法讀取分類列表回應")
-		return
-	}
-
-	var categoryListData struct {
-		Status string         `json:"status"`
-		Result []obj.Category `json:"result"`
-	}
-	if err := json.Unmarshal(categoryListBody, &categoryListData); err != nil {
-		log.Println("Category list JSON parse error:", err)
-		renderErrorPage(w, "分類列表格式錯誤")
-		return
-	}
+	// 當前分類
+	currentCategory := r.URL.Query().Get("category")
 
 	// 準備要給模板的資料
 	data := obj.DocPageData{
 		PageTitle:         "支援中心 - 榛果繽紛樂",
-		DocFound:          false,
-		DocTitle:          "",
-		PublishDate:       "",
-		LastEditDate:      "",
-		HTMLContent:       "",
+		DocFound:          true,
+		DocTitle:          doc.Title,
+		PublishDate:       doc.PublishDate,
+		LastEditDate:      doc.LastEditDate.Format("2006-01-02"),
 		CurrentCategory:   currentCategory,
-		CurrentCategoryID: "", // 稍後在成功時再填
-		Categories:        categoryListData.Result,
+		CurrentCategoryID: conv.ToString(doc.CategoryID),
+		Categories:        categories,
 	}
 
-	if resp.StatusCode != 200 {
-		// API 回傳非 200 時
-		msg := fmt.Sprintf("發生錯誤 (HTTP %d)。", resp.StatusCode)
-		if jsonData.Message != "" {
-			msg += " 錯誤訊息：" + jsonData.Message
-		}
-		// 直接在模板上顯示錯誤
-		data.HTMLContent = msg
+	// URL 解碼
+	md, err := ur.QueryUnescape(doc.Content)
+	if err != nil {
+		log.Println("URL decode error:", err)
+		data.HTMLContent = "<p>內容解析失敗</p>"
 	} else {
-		// status == success
-		if jsonData.Status == "success" {
-			doc := jsonData.Result
-			data.DocFound = true
-			data.DocTitle = doc.Title
-			data.CurrentCategoryID = conv.ToString(doc.CategoryID)
-			// 只取 yyyy-mm-dd
-			if len(doc.PublishDate) >= 10 {
-				data.PublishDate = doc.PublishDate[:10]
-			}
-			if len(doc.LastEditDate) >= 10 {
-				data.LastEditDate = doc.LastEditDate[:10]
-			}
-
-			// URL 解碼
-			md, err := ur.QueryUnescape(doc.Content)
-			if err != nil {
-				log.Println("URL decode error:", err)
-				data.HTMLContent = "<p>內容解析失敗</p>"
-			} else {
-				var htmlBuilder strings.Builder
-				if err := goldmark.Convert([]byte(md), &htmlBuilder); err != nil {
-					log.Println("Markdown parse error:", err)
-					data.HTMLContent = "<p>內容解析失敗</p>"
-				} else {
-					data.HTMLContent = htmlBuilder.String()
-				}
-			}
-
-			data.PageTitle = doc.Title + " | " + data.PageTitle
+		var htmlBuilder strings.Builder
+		if err := goldmark.Convert([]byte(md), &htmlBuilder); err != nil {
+			log.Println("Markdown parse error:", err)
+			data.HTMLContent = "<p>內容解析失敗</p>"
 		} else {
-			// API 回傳 success != 'success'
-			data.HTMLContent = "<p>文章未找到。 (status != success)</p>"
+			data.HTMLContent = htmlBuilder.String()
 		}
 	}
+
+	data.PageTitle = doc.Title + " | " + data.PageTitle
 
 	// 解析並執行模板
 	tmpl, err := template.ParseFiles("templates/doc.html", "templates/header.html")
@@ -146,8 +82,6 @@ func DocHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 與之前一樣，如果你的模板有用 `{{ define "doc" }}`，要用 ExecuteTemplate
-	// 若 template 直接就是 doc.tmpl 裡全部，那就 tmpl.Execute(w, data) 即可
 	err = tmpl.Execute(w, data)
 	if err != nil {
 		log.Println("Template execute error:", err)

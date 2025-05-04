@@ -1,0 +1,29 @@
+{{define "content"}}
+<div class="card">
+    <div class="card-body">
+        <h2 class="card-title">管理儀表板</h2>
+        <p class="card-text">歡迎使用支援中心管理面板。您可以從左側選單選擇要管理的項目。</p>
+
+        <div class="row mt-4">
+            <div class="col-md-4">
+                <div class="card text-white bg-primary mb-3">
+                    <div class="card-body">
+                        <h5 class="card-title">分類數量</h5>
+                        <p class="card-text fs-1">{{.CategoryCount}}</p>
+                        <a href="/admin/categories" class="btn btn-light">管理分類</a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card text-white bg-success mb-3">
+                    <div class="card-body">
+                        <h5 class="card-title">文件數量</h5>
+                        <p class="card-text fs-1">{{.DocCount}}</p>
+                        <a href="/admin/docs" class="btn btn-light">管理文件</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{{end}}

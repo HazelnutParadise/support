@@ -1,0 +1,132 @@
+{{define "content"}}
+<div class="card">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2 class="card-title">編輯文件</h2>
+            <a href="/admin/docs" class="btn btn-secondary">返回文件列表</a>
+        </div>
+
+        {{if .Message}}
+        <div class="alert alert-{{.MessageType}} alert-dismissible fade show">
+            {{.Message}}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        {{end}}
+
+        <form action="/admin/docs/update" method="post">
+            <input type="hidden" name="id" value="{{.Doc.ID}}">
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label for="docTitle" class="form-label">文件標題</label>
+                    <input type="text" class="form-control" id="docTitle" name="title" value="{{.Doc.Title}}" required>
+                </div>
+                <div class="col-md-3">
+                    <label for="docCategory" class="form-label">所屬分類</label>
+                    <select class="form-select" id="docCategory" name="category_id" required>
+                        <option value="">請選擇分類</option>
+                        {{range .Categories}}
+                        <option value="{{.ID}}" {{if eq $.Doc.CategoryID .ID}}selected{{end}}>{{.Name}}</option>
+                        {{end}}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="publishDate" class="form-label">發布日期</label>
+                    <input type="date" class="form-control" id="publishDate" name="publish_date"
+                        value="{{.Doc.PublishDate}}">
+                </div>
+            </div>
+            <div class="mb-3">
+                <label for="docContent" class="form-label">文件內容 (Markdown)</label>
+                <div class="d-flex justify-content-between mb-2">
+                    <div>
+                        <button type="button" class="btn btn-sm btn-outline-secondary me-1"
+                            onclick="insertMarkdown('**粗體**')">粗體</button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary me-1"
+                            onclick="insertMarkdown('*斜體*')">斜體</button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary me-1"
+                            onclick="insertMarkdown('# 標題')">標題</button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary me-1"
+                            onclick="insertMarkdown('- 列表項目')">列表</button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary me-1"
+                            onclick="insertMarkdown('[連結文字](連結網址)')">連結</button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary me-1"
+                            onclick="insertMarkdown('![圖片說明](圖片網址)')">圖片</button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary me-1"
+                            onclick="insertMarkdown('```\n代碼區塊\n```')">代碼</button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary me-1"
+                            onclick="insertMarkdown('> 引用文字')">引用</button>
+                    </div>
+                    <div>
+                        <button type="button" class="btn btn-sm btn-outline-primary"
+                            onclick="togglePreview()">預覽</button>
+                    </div>
+                </div>
+                <div id="editor-container">
+                    <textarea class="form-control" id="docContent" name="content" rows="20"
+                        required>{{.DocContent}}</textarea>
+                </div>
+                <div id="preview-container" class="border p-3 rounded" style="display:none; min-height: 400px;">
+                </div>
+            </div>
+            <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                <a href="/admin/docs" class="btn btn-secondary me-md-2">取消</a>
+                <button type="submit" class="btn btn-primary">保存更新</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script>
+    function insertMarkdown(text) {
+        const textarea = document.getElementById('docContent');
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        const selectedText = textarea.value.substring(start, end);
+
+        // 替換選中的文字為 Markdown 標記
+        if (text.includes('**') && selectedText) {
+            textarea.value = textarea.value.substring(0, start) +
+                `**${selectedText}**` +
+                textarea.value.substring(end);
+        } else if (text.includes('*') && selectedText) {
+            textarea.value = textarea.value.substring(0, start) +
+                `*${selectedText}*` +
+                textarea.value.substring(end);
+        } else if (text.includes('[') && selectedText) {
+            textarea.value = textarea.value.substring(0, start) +
+                `[${selectedText}](連結網址)` +
+                textarea.value.substring(end);
+        } else {
+            // 直接插入標記
+            textarea.value = textarea.value.substring(0, start) +
+                text +
+                textarea.value.substring(end);
+        }
+
+        // 設置光標位置
+        textarea.focus();
+        textarea.selectionStart = start + text.length;
+        textarea.selectionEnd = start + text.length;
+    }
+
+    function togglePreview() {
+        const editorContainer = document.getElementById('editor-container');
+        const previewContainer = document.getElementById('preview-container');
+        const textarea = document.getElementById('docContent');
+
+        if (editorContainer.style.display === 'none') {
+            // 切換回編輯器
+            editorContainer.style.display = 'block';
+            previewContainer.style.display = 'none';
+        } else {
+            // 切換到預覽
+            editorContainer.style.display = 'none';
+            previewContainer.style.display = 'block';
+
+            // 使用 Marked.js 渲染 Markdown
+            previewContainer.innerHTML = marked.parse(textarea.value);
+        }
+    }
+</script>
+{{end}}

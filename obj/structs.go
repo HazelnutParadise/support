@@ -1,9 +1,13 @@
 package obj
 
+import "time"
+
 // 這只是示範結構，實際欄位可自行調整
 type Category struct {
-	ID   uint   `json:"id"`
-	Name string `json:"name"`
+	ID         uint      `json:"id" gorm:"primaryKey"`
+	Name       string    `json:"name" gorm:"unique"`
+	CreateTime time.Time `json:"create_time" gorm:"autoCreateTime"`
+	UpdateTime time.Time `json:"update_time" gorm:"autoUpdateTime"`
 }
 
 type IndexData struct {
@@ -15,12 +19,12 @@ type IndexData struct {
 }
 
 type Doc struct {
-	ID           uint   `json:"id"`
-	Title        string `json:"title"`
-	Content      string `json:"content"`
-	PublishDate  string `json:"publish_date"`
-	LastEditDate string `json:"last_edit_date"`
-	CategoryID   uint   `json:"category_id"`
+	ID           uint      `json:"id"`
+	Title        string    `json:"title"`
+	Content      string    `json:"content"`
+	PublishDate  string    `json:"publish_date"`
+	LastEditDate time.Time `json:"last_edit_date" gorm:"autoUpdateTime"`
+	CategoryID   uint      `json:"category_id"`
 }
 
 // 為了渲染模板，我們再做一個結構把需要的全部資料包起來

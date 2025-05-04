@@ -1,13 +1,15 @@
 {{ define "index" }}
 <!DOCTYPE html>
 <html lang="zh-TW">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" href="https://src.hazelnut-paradise.com/HazelnutParadise-icon.ico">
     <title>{{ .Title }}</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css"></link>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    </link>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&display=swap" rel="stylesheet">
 
     <style>
@@ -19,11 +21,12 @@
         #main-container .category-button:hover {
             color: black;
         }
+
         .category-button.active {
             background-color: rgb(89, 80, 98);
             color: white;
         }
-    
+
         /* 深色模式 */
         @media (prefers-color-scheme: dark) {
             body {
@@ -47,9 +50,12 @@
             #main-container .category-button {
                 background-color: #333 !important;
             }
-            #main-container .category-button:hover, .doc-btn:hover {
+
+            #main-container .category-button:hover,
+            .doc-btn:hover {
                 background-color: #444 !important;
             }
+
             #main-container .category-button.active {
                 background-color: rgb(89, 80, 98) !important;
             }
@@ -60,6 +66,7 @@
         }
     </style>
 </head>
+
 <body class="bg-gray-200">
     {{ template "header" . }}
 
@@ -68,35 +75,37 @@
             <h3 class="text-2xl font-bold mb-4">支援文件類別：</h3>
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 category-container">
                 {{ range .Categories }}
-                    <a class="block p-4 bg-gray-100 rounded-lg hover:bg-gray-200 transition category-button{{ if eq .ID $.CurrentCategoryID }} active{{ end }}" 
-                       href="?category_id={{ .ID }}&category_name={{ .Name }}">
-                        <h2 class="text-xl font-semibold">{{ .Name }}</h2>
-                    </a>
+                <a class="block p-4 bg-gray-100 rounded-lg hover:bg-gray-200 transition category-button{{ if eq .ID $.CurrentCategoryID }} active{{ end }}"
+                    href="?category_id={{ .ID }}&category_name={{ .Name }}">
+                    <h2 class="text-xl font-semibold">{{ .Name }}</h2>
+                </a>
                 {{ end }}
             </div>
             <br>
 
             {{ if $.CurrentCategoryID }}
-                <h3 class="text-2xl font-bold mb-4">[{{ .CurrentCategory }}] 文件列表：</h3>
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 category-container">
-                    {{ range .Docs }}
-                        <a class="block p-4 bg-gray-100 rounded-lg hover:bg-gray-200 transition doc-btn" 
-                           href="doc?id={{ .ID }}&title={{ .Title }}&category={{ $.CurrentCategory }}">
-                            <h2 class="text-xl font-semibold">{{ .Title }}</h2>
-                            <p class="text-gray-600">更新日期：{{ slice .LastEditDate 0 10 }}</p>
-                        </a>
-                    {{ end }}
-                </div>
+            <h3 class="text-2xl font-bold mb-4">[{{ .CurrentCategory }}] 文件列表：</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 category-container">
+                {{ range .Docs }}
+                <a class="block p-4 bg-gray-100 rounded-lg hover:bg-gray-200 transition doc-btn"
+                    href="doc?id={{ .ID }}&title={{ .Title }}&category={{ $.CurrentCategory }}">
+                    <h2 class="text-xl font-semibold">{{ .Title }}</h2>
+                    <p class="text-gray-600">更新日期：{{ .LastEditDate.Format "2006-01-02" }}</p>
+                </a>
+                {{ end }}
+            </div>
             {{ end }}
 
             <h5 class="text-lg mt-8">
-                沒有找到答案嗎？ 
-                <a id="didnt-find-ans" href="https://apps.hazelnut-paradise.com/mail" class="text-blue-500 hover:underline">
+                沒有找到答案嗎？
+                <a id="didnt-find-ans" href="https://apps.hazelnut-paradise.com/mail"
+                    class="text-blue-500 hover:underline">
                     聯繫我們
                 </a>
             </h5>
         </div>
     </main>
 </body>
+
 </html>
 {{ end }}
