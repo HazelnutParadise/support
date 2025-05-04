@@ -106,6 +106,50 @@ func GetAllDocs() ([]obj.Doc, error) {
 	return docs, result.Error
 }
 
+// GetPublishedDocs 獲取所有已發布（非草稿）的文件
+func GetPublishedDocs() ([]obj.Doc, error) {
+	db, err := DB()
+	if err != nil {
+		return nil, err
+	}
+	var docs []obj.Doc
+	result := db.Where("is_draft = ?", false).Find(&docs)
+	return docs, result.Error
+}
+
+// GetDraftDocs 獲取所有草稿
+func GetDraftDocs() ([]obj.Doc, error) {
+	db, err := DB()
+	if err != nil {
+		return nil, err
+	}
+	var docs []obj.Doc
+	result := db.Where("is_draft = ?", true).Find(&docs)
+	return docs, result.Error
+}
+
+// GetPublishedDocsByCategory 獲取特定分類下的所有已發布文章
+func GetPublishedDocsByCategory(categoryID uint) ([]obj.Doc, error) {
+	db, err := DB()
+	if err != nil {
+		return nil, err
+	}
+	var docs []obj.Doc
+	result := db.Where("category_id = ? AND is_draft = ?", categoryID, false).Find(&docs)
+	return docs, result.Error
+}
+
+// GetDraftsByCategory 獲取特定分類下的所有草稿
+func GetDraftsByCategory(categoryID uint) ([]obj.Doc, error) {
+	db, err := DB()
+	if err != nil {
+		return nil, err
+	}
+	var docs []obj.Doc
+	result := db.Where("category_id = ? AND is_draft = ?", categoryID, true).Find(&docs)
+	return docs, result.Error
+}
+
 // AddCategory 添加新分類
 func AddCategory(category *obj.Category) error {
 	db, err := DB()

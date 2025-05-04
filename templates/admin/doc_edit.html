@@ -13,7 +13,7 @@
         </div>
         {{end}}
 
-        <form action="/admin/docs/update" method="post">
+        <form action="/admin/docs/update" method="post" id="docEditForm">
             <input type="hidden" name="id" value="{{.Doc.ID}}">
             <div class="row mb-3">
                 <div class="col-md-6">
@@ -29,10 +29,19 @@
                         {{end}}
                     </select>
                 </div>
-                <div class="col-md-3">
+                <div class="col-md-3" id="publishDateContainer" style="{{if .Doc.IsDraft}}display:none;{{end}}">
                     <label for="publishDate" class="form-label">發布日期</label>
                     <input type="date" class="form-control" id="publishDate" name="publish_date"
                         value="{{.Doc.PublishDate}}">
+                </div>
+            </div>
+            <div class="mb-3">
+                <div class="form-check mb-2">
+                    <input class="form-check-input" type="checkbox" id="isDraft" name="is_draft" value="true" {{if
+                        .Doc.IsDraft}}checked{{end}} onchange="togglePublishDateField()">
+                    <label class="form-check-label" for="isDraft">
+                        儲存為草稿 <small class="text-muted">(草稿不會顯示在前台頁面)</small>
+                    </label>
                 </div>
             </div>
             <div class="mb-3">
@@ -71,6 +80,7 @@
             <div class="d-grid gap-2 d-md-flex justify-content-md-end">
                 <a href="/admin/docs" class="btn btn-secondary me-md-2">取消</a>
                 <button type="submit" class="btn btn-primary">保存更新</button>
+                <button type="button" id="saveAndCloseBtn" class="btn btn-success">保存並返回</button>
             </div>
         </form>
     </div>
@@ -78,6 +88,51 @@
 
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <script>
+    // 切換發布日期欄位的顯示/隱藏
+    function togglePublishDateField() {
+        const isDraft = document.getElementById('isDraft').checked;
+        const publishDateContainer = document.getElementById('publishDateContainer');
+
+        if (isDraft) {
+            publishDateContainer.style.display = 'none';
+        } else {
+            publishDateContainer.style.display = 'block';
+        }
+    }
+
+    // 頁面加載時初始化
+    document.addEventListener('DOMContentLoaded', function () {
+        togglePublishDateField();
+
+        // 從 URL 中獲取參數
+        const urlParams = new URLSearchParams(window.location.search);
+        const autoClose = urlParams.get('autoClose');
+        const message = urlParams.get('message');
+
+        // 如果是自動關閉模式且有成功訊息，自動關閉頁面
+        if (autoClose === 'true' && message) {
+            // 顯示訊息，然後延遲 1 秒後關閉
+            setTimeout(function () {
+                window.location.href = '/admin/docs';
+            }, 1000);
+        }
+    });
+
+    // 點擊「保存並返回」按鈕
+    document.getElementById('saveAndCloseBtn').addEventListener('click', function (e) {
+        e.preventDefault();
+
+        // 在表單提交前添加一個隱藏字段
+        const autoCloseInput = document.createElement('input');
+        autoCloseInput.type = 'hidden';
+        autoCloseInput.name = 'autoClose';
+        autoCloseInput.value = 'true';
+        document.getElementById('docEditForm').appendChild(autoCloseInput);
+
+        // 提交表單
+        document.getElementById('docEditForm').submit();
+    });
+
     function insertMarkdown(text) {
         const textarea = document.getElementById('docContent');
         const start = textarea.selectionStart;

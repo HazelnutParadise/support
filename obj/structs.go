@@ -25,6 +25,7 @@ type Doc struct {
 	PublishDate  string    `json:"publish_date"`
 	LastEditDate time.Time `json:"last_edit_date" gorm:"autoUpdateTime"`
 	CategoryID   uint      `json:"category_id"`
+	IsDraft      bool      `json:"is_draft" gorm:"default:false"` // 新增草稿標記
 }
 
 // 為了渲染模板，我們再做一個結構把需要的全部資料包起來

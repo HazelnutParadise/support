@@ -24,6 +24,35 @@ func removePHP(next http.Handler) http.Handler {
 	})
 }
 
+// 包裝 IndexHandler 以處理精確路徑匹配
+func ExactPathIndexHandler(w http.ResponseWriter, r *http.Request) {
+	// 只有當路徑確實是 "/" 時才調用 IndexHandler
+	if r.URL.Path != "/" {
+		handler.NotFoundHandler(w, r)
+		return
+	}
+	handler.IndexHandler(w, r)
+}
+
+// 自定義 NotFound 處理器
+type CustomNotFoundHandler struct {
+	Mux *http.ServeMux
+}
+
+func (h *CustomNotFoundHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	// 使用內部 mux 來嘗試處理請求
+	handlerFunc, pattern := h.Mux.Handler(r)
+
+	if pattern != "" {
+		// 有匹配的路由，使用原有處理器
+		handlerFunc.ServeHTTP(w, r)
+		return
+	}
+
+	// 沒有匹配的路由，調用自定義 404 處理函數
+	handler.NotFoundHandler(w, r)
+}
+
 func main() {
 	// 初始化資料庫連接
 	_, err := db.DB()
@@ -36,7 +65,7 @@ func main() {
 	mux := http.NewServeMux()
 
 	// 前台路由
-	mux.HandleFunc("/", handler.IndexHandler)
+	mux.HandleFunc("/", ExactPathIndexHandler)
 	mux.HandleFunc("/index", func(w http.ResponseWriter, r *http.Request) {
 		originalQuery := r.URL.RawQuery
 		newPath := "/"
@@ -60,7 +89,10 @@ func main() {
 	mux.HandleFunc("/admin/docs/update", handler.AdminDocUpdateHandler)
 	mux.HandleFunc("/admin/docs/delete", handler.AdminDocDeleteHandler)
 
+	// 創建一個自定義的 NotFound 處理器
+	notFoundWrapper := &CustomNotFoundHandler{Mux: mux}
+
 	// 啟動服務
 	fmt.Println("伺服器執行中... http://localhost:3000/")
-	log.Fatal(http.ListenAndServe(":3000", removePHP(mux)))
+	log.Fatal(http.ListenAndServe(":3000", removePHP(notFoundWrapper)))
 }

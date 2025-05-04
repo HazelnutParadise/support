@@ -22,20 +22,47 @@ func IndexHandler(w http.ResponseWriter, r *http.Request) {
 		categories = []obj.Category{}
 	}
 
-	// 如果有指定 categoryID，再去抓該分類底下的文件列表
+	// 如果有指定 categoryID，再去抓該分類底下的文件列表 (僅顯示已發布的文件)
 	var docs []obj.Doc
 	var uintCategoryID uint = 0
+	var categoryExists bool = true
 
 	if categoryIDStr != "" {
 		categoryID, err := strconv.ParseUint(categoryIDStr, 10, 32)
-		if err == nil {
-			uintCategoryID = uint(categoryID)
-			docs, err = db.GetDocsByCategory(uintCategoryID)
-			if err != nil {
-				// 若失敗，記錄錯誤並改用空陣列
-				log.Println("GetDocsByCategory error:", err)
-				docs = []obj.Doc{}
+		if err != nil {
+			// 非法的類別ID，顯示404頁面
+			log.Println("Invalid category ID:", err)
+			NotFoundHandler(w, r)
+			return
+		}
+
+		uintCategoryID = uint(categoryID)
+
+		// 檢查分類是否存在
+		categoryExists = false
+		// 增加日誌來顯示所有分類的 ID，以便調試
+		categoryIDs := []uint{}
+		for _, category := range categories {
+			categoryIDs = append(categoryIDs, category.ID)
+			if category.ID == uintCategoryID {
+				categoryExists = true
+				break
 			}
+		}
+
+		if !categoryExists {
+			// 類別不存在，顯示404頁面
+			log.Printf("Category not found: %d. Available categories: %v", uintCategoryID, categoryIDs)
+			NotFoundHandler(w, r)
+			return
+		}
+
+		// 只取得已發布的文件
+		docs, err = db.GetPublishedDocsByCategory(uintCategoryID)
+		if err != nil {
+			// 若失敗，記錄錯誤並改用空陣列
+			log.Println("GetPublishedDocsByCategory error:", err)
+			docs = []obj.Doc{}
 		}
 	}
 

@@ -26,6 +26,13 @@
                     </select>
                 </div>
                 <div class="col-auto">
+                    <select name="filter" class="form-select">
+                        <option value="all" {{if eq $.Filter "all" }}selected{{end}}>所有文件</option>
+                        <option value="published" {{if eq $.Filter "published" }}selected{{end}}>已發布</option>
+                        <option value="drafts" {{if eq $.Filter "drafts" }}selected{{end}}>草稿</option>
+                    </select>
+                </div>
+                <div class="col-auto">
                     <button type="submit" class="btn btn-secondary">篩選</button>
                 </div>
             </form>
@@ -38,6 +45,7 @@
                         <th>ID</th>
                         <th>標題</th>
                         <th>分類</th>
+                        <th>狀態</th>
                         <th>發布日期</th>
                         <th>最後更新</th>
                         <th>操作</th>
@@ -47,10 +55,19 @@
                     {{range .Docs}}
                     <tr>
                         <td>{{.ID}}</td>
-                        <td>{{.Title}}</td>
+                        <td>
+                            {{.Title}}
+                        </td>
                         <td>
                             {{range $.Categories}}
                             {{if eq .ID $.Doc.CategoryID}}{{.Name}}{{end}}
+                            {{end}}
+                        </td>
+                        <td>
+                            {{if .IsDraft}}
+                            <span class="badge bg-warning text-dark">草稿</span>
+                            {{else}}
+                            <span class="badge bg-success">已發布</span>
                             {{end}}
                         </td>
                         <td>{{.PublishDate}}</td>
@@ -63,7 +80,7 @@
                     </tr>
                     {{else}}
                     <tr>
-                        <td colspan="6" class="text-center">暫無文件資料</td>
+                        <td colspan="7" class="text-center">暫無文件資料</td>
                     </tr>
                     {{end}}
                 </tbody>
@@ -103,6 +120,15 @@
                         </div>
                     </div>
                     <div class="mb-3">
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="checkbox" id="addIsDraft" name="is_draft"
+                                value="true">
+                            <label class="form-check-label" for="addIsDraft">
+                                儲存為草稿 <small class="text-muted">(草稿不會顯示在前台頁面)</small>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="mb-3">
                         <label for="docContent" class="form-label">文件內容 (Markdown)</label>
                         <div class="d-flex mb-2">
                             <button type="button" class="btn btn-sm btn-outline-secondary me-1"
@@ -125,9 +151,11 @@
                         <textarea class="form-control" id="docContent" name="content" rows="15" required></textarea>
                     </div>
                 </div>
-                <div class="modal-footer">
+                <div class="modal-footer d-flex justify-content-between">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
-                    <button type="submit" class="btn btn-primary">新增</button>
+                    <div>
+                        <button type="submit" class="btn btn-primary">儲存</button>
+                    </div>
                 </div>
             </form>
         </div>

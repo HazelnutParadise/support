@@ -15,14 +15,20 @@ import (
 	"support/obj"
 )
 
-// docHandler 負責顯示單篇文件內容
+// DocHandler 負責顯示單篇文件內容
 func DocHandler(w http.ResponseWriter, r *http.Request) {
 	// 從 query string 拿到 doc ID
 	docIDStr := r.URL.Query().Get("id")
+
+	// 更完整地處理 docIDStr 可能包含的額外參數
+	if idx := strings.IndexAny(docIDStr, "?&"); idx > 0 {
+		docIDStr = docIDStr[:idx]
+	}
+
 	docID, err := strconv.ParseUint(docIDStr, 10, 32)
 	if err != nil {
 		log.Println("Invalid doc ID:", err)
-		renderErrorPage(w, "文件 ID 無效")
+		NotFoundHandler(w, r)
 		return
 	}
 
@@ -30,7 +36,13 @@ func DocHandler(w http.ResponseWriter, r *http.Request) {
 	doc, err := db.GetDoc(uint(docID))
 	if err != nil {
 		log.Println("Error fetching doc:", err)
-		renderErrorPage(w, "無法取得文件")
+		NotFoundHandler(w, r)
+		return
+	}
+
+	// 如果文件是草稿，返回 404
+	if doc.IsDraft {
+		NotFoundHandler(w, r)
 		return
 	}
 
@@ -38,7 +50,7 @@ func DocHandler(w http.ResponseWriter, r *http.Request) {
 	categories, err := db.GetCategoryList()
 	if err != nil {
 		log.Println("Error fetching category list:", err)
-		renderErrorPage(w, "無法取得分類列表")
+		NotFoundHandler(w, r)
 		return
 	}
 
