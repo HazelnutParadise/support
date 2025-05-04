@@ -4,5 +4,5 @@ services:
     ports:
       - "1236:3000"
     volumes:
-      - /mnt/hdd0/support-center/data:/app/data
+      - /mnt/hdd0/support-center/data:/data
     restart: always
