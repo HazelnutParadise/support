@@ -6,11 +6,11 @@ WORKDIR /app
 # 複製當前目錄下的所有檔案到容器的工作目錄
 COPY . .
 
-# 執行編譯命令，生成二進位檔案 myapp
+# 執行編譯命令，生成二進位檔案
 RUN go build -o app
 
 # 第二階段：使用更小的基礎映像來建立最終的映像
-FROM scratch
+FROM alpine:latest
 
 # 設定工作目錄
 WORKDIR /app
