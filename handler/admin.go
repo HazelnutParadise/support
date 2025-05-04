@@ -562,6 +562,15 @@ func AdminDocEditHandler(w http.ResponseWriter, r *http.Request) {
 			http.Redirect(w, r, "/admin/docs", http.StatusSeeOther)
 			return
 		}
+
+		// 解碼文件內容，用於編輯
+		decodedContent, err := url.QueryUnescape(doc.Content)
+		if err != nil {
+			log.Println("URL decode error:", err)
+			// 如果解碼失敗，仍使用原始內容
+		} else {
+			doc.Content = decodedContent
+		}
 	}
 
 	if r.Method == "POST" {
@@ -636,11 +645,14 @@ func AdminDocEditHandler(w http.ResponseWriter, r *http.Request) {
 		// 判斷是否為草稿
 		isDraft := isDraftStr == "true"
 
+		// URL 編碼文件內容
+		encodedContent := url.QueryEscape(content)
+
 		// 更新文件對象
 		doc.Title = title
 		doc.CategoryID = uint(categoryID)
 		doc.PublishDate = publishDate
-		doc.Content = content
+		doc.Content = encodedContent
 		doc.IsDraft = isDraft
 
 		// 保存到數據庫

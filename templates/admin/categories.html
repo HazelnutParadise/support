@@ -31,8 +31,8 @@
                     <tr>
                         <td>{{.ID}}</td>
                         <td>{{.Name}}</td>
-                        <td>{{.CreateTime.Format "2006-01-02 15:04:05"}}</td>
-                        <td>{{.UpdateTime.Format "2006-01-02 15:04:05"}}</td>
+                        <td>{{.CreateTime.Format "2006-01-02"}}</td>
+                        <td>{{.UpdateTime.Format "2006-01-02"}}</td>
                         <td>
                             <button class="btn btn-sm btn-warning edit-btn" data-id="{{.ID}}" data-name="{{.Name}}"
                                 data-bs-toggle="modal" data-bs-target="#editCategoryModal">編輯</button>

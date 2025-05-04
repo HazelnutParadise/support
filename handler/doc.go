@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 	"text/template"
+	"time"
 
 	"github.com/HazelnutParadise/Go-Utils/conv"
 	"github.com/yuin/goldmark"
@@ -57,12 +58,26 @@ func DocHandler(w http.ResponseWriter, r *http.Request) {
 	// 當前分類
 	currentCategory := r.URL.Query().Get("category")
 
+	// 處理發布日期格式，只顯示到日
+	var formattedPublishDate string
+	if doc.PublishDate != "" {
+		// 嘗試解析日期
+		parsedDate, err := time.Parse("2006-01-02", doc.PublishDate)
+		if err == nil {
+			// 只取日期部分
+			formattedPublishDate = parsedDate.Format("2")
+		} else {
+			// 如果解析失敗，使用原始日期
+			formattedPublishDate = doc.PublishDate
+		}
+	}
+
 	// 準備要給模板的資料
 	data := obj.DocPageData{
 		PageTitle:         "支援中心 - 榛果繽紛樂",
 		DocFound:          true,
 		DocTitle:          doc.Title,
-		PublishDate:       doc.PublishDate,
+		PublishDate:       formattedPublishDate,
 		LastEditDate:      doc.LastEditDate.Format("2006-01-02"),
 		CurrentCategory:   currentCategory,
 		CurrentCategoryID: conv.ToString(doc.CategoryID),

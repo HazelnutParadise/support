@@ -71,7 +71,7 @@
                             {{end}}
                         </td>
                         <td>{{.PublishDate}}</td>
-                        <td>{{.LastEditDate.Format "2006-01-02 15:04:05"}}</td>
+                        <td>{{.LastEditDate.Format "2006-01-02"}}</td>
                         <td>
                             <a href="/admin/docs/edit?id={{.ID}}" class="btn btn-sm btn-warning">編輯</a>
                             <button class="btn btn-sm btn-danger delete-btn" data-id="{{.ID}}" data-title="{{.Title}}"

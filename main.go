@@ -76,6 +76,7 @@ func main() {
 	})
 	mux.HandleFunc("/doc", handler.DocHandler)
 	mux.HandleFunc("/search", handler.SearchHandler)
+	mux.HandleFunc("/category-docs", handler.CategoryDocsHandler) // 新增分類文章列表路由
 
 	// 後台登入/登出路由 (不需要驗證)
 	mux.HandleFunc("/admin/login", handler.AdminLoginHandler)
