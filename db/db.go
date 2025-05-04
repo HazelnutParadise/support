@@ -266,7 +266,43 @@ func AddDoc(doc *obj.Doc) error {
 	if err != nil {
 		return err
 	}
-	return db.Create(doc).Error
+
+	// 轉換為資料庫可存儲的格式
+	dbDoc := map[string]interface{}{
+		"title":       doc.Title,
+		"content":     doc.Content,
+		"category_id": doc.CategoryID,
+		"is_draft":    doc.IsDraft,
+	}
+
+	// 處理發布日期
+	if doc.PublishDate.Valid {
+		dbDoc["publish_date"] = doc.PublishDate.Time
+	}
+
+	// 設置最後編輯日期
+	if doc.LastEditDate.IsZero() {
+		dbDoc["last_edit_date"] = time.Now()
+	} else {
+		dbDoc["last_edit_date"] = doc.LastEditDate
+	}
+
+	// 創建文檔
+	result := db.Model(&obj.Doc{}).Create(dbDoc)
+	if result.Error != nil {
+		return result.Error
+	}
+
+	// 獲取插入的 ID
+	var lastInsertID int64
+	row := db.Raw("SELECT last_insert_rowid()").Row()
+	err = row.Scan(&lastInsertID)
+	if err != nil {
+		return err
+	}
+
+	doc.ID = uint(lastInsertID)
+	return nil
 }
 
 // UpdateDoc 更新文件
@@ -275,7 +311,25 @@ func UpdateDoc(doc *obj.Doc) error {
 	if err != nil {
 		return err
 	}
-	return db.Save(doc).Error
+
+	// 由於 PublishDate 是自訂類型，這裡需要特別處理
+	// 我們將使用 map 來進行更新，以便正確處理 DateField 類型
+	updates := map[string]interface{}{
+		"title":          doc.Title,
+		"content":        doc.Content,
+		"category_id":    doc.CategoryID,
+		"is_draft":       doc.IsDraft,
+		"last_edit_date": doc.LastEditDate,
+	}
+
+	// 只有當 PublishDate 是有效的，才將其添加到更新中
+	if doc.PublishDate.Valid {
+		updates["publish_date"] = doc.PublishDate.Time
+	} else {
+		updates["publish_date"] = nil
+	}
+
+	return db.Model(&obj.Doc{}).Where("id = ?", doc.ID).Updates(updates).Error
 }
 
 // DeleteDoc 刪除文件

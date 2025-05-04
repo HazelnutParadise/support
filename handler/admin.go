@@ -478,8 +478,53 @@ func AdminDocsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 獲取文檔列表
-	docs, err := db.GetAllDocs()
+	// 獲取篩選條件
+	categoryIDStr := r.URL.Query().Get("category_id")
+	filter := r.URL.Query().Get("filter")
+	if filter == "" {
+		filter = "all" // 默認顯示所有文件
+	}
+
+	var docs []obj.Doc
+	var categoryID uint = 0
+
+	// 解析分類ID（如果提供）
+	if categoryIDStr != "" {
+		id, err := strconv.ParseUint(categoryIDStr, 10, 32)
+		if err == nil {
+			categoryID = uint(id)
+		}
+	}
+
+	// 根據篩選條件獲取文件
+	if categoryID > 0 {
+		// 有分類篩選
+		switch filter {
+		case "published":
+			// 取得指定分類的已發布文件
+			docs, err = db.GetPublishedDocsByCategory(categoryID)
+		case "drafts":
+			// 取得指定分類的草稿
+			docs, err = db.GetDraftsByCategory(categoryID)
+		default:
+			// 取得指定分類的所有文件
+			docs, err = db.GetDocsByCategory(categoryID)
+		}
+	} else {
+		// 無分類篩選
+		switch filter {
+		case "published":
+			// 取得所有已發布文件
+			docs, err = db.GetPublishedDocs()
+		case "drafts":
+			// 取得所有草稿
+			docs, err = db.GetDraftDocs()
+		default:
+			// 取得所有文件
+			docs, err = db.GetAllDocs()
+		}
+	}
+
 	if err != nil {
 		log.Println("Error fetching docs:", err)
 	}
@@ -494,14 +539,20 @@ func AdminDocsHandler(w http.ResponseWriter, r *http.Request) {
 	message := r.URL.Query().Get("message")
 	messageType := r.URL.Query().Get("type")
 
+	// 準備今天的日期，用於新增文件的默認發布日期
+	today := time.Now().Format("2006-01-02")
+
 	// 準備模板數據
 	data := map[string]interface{}{
-		"Active":      "docs",
-		"Docs":        docs,
-		"Categories":  categories,
-		"Message":     message,
-		"MessageType": messageType,
-		"Username":    session.Username,
+		"Active":           "docs",
+		"Docs":             docs,
+		"Categories":       categories,
+		"Message":          message,
+		"MessageType":      messageType,
+		"Username":         session.Username,
+		"Today":            today,
+		"Filter":           filter,
+		"FilterCategoryID": categoryID,
 	}
 
 	// 解析模板
@@ -543,8 +594,12 @@ func AdminDocEditHandler(w http.ResponseWriter, r *http.Request) {
 		// 新增文件的情況
 		isNewDoc = true
 		doc = obj.Doc{
-			PublishDate: time.Now().Format("2006-01-02"),
-			IsDraft:     true, // 默認為草稿
+			PublishDate: func() obj.DateField {
+				var dateField obj.DateField
+				dateField.FromTime(time.Now())
+				return dateField
+			}(),
+			IsDraft: true, // 默認為草稿
 		}
 	} else {
 		// 編輯現有文件的情況
@@ -651,7 +706,12 @@ func AdminDocEditHandler(w http.ResponseWriter, r *http.Request) {
 		// 更新文件對象
 		doc.Title = title
 		doc.CategoryID = uint(categoryID)
-		doc.PublishDate = publishDate
+		doc.PublishDate = obj.DateField{}
+		err = doc.PublishDate.FromString(publishDate)
+		if err != nil {
+			log.Println("Invalid publish date:", err)
+			doc.PublishDate.FromTime(time.Now()) // Default to current time if parsing fails
+		}
 		doc.Content = encodedContent
 		doc.IsDraft = isDraft
 
@@ -733,7 +793,7 @@ func AdminDocAddHandler(w http.ResponseWriter, r *http.Request) {
 	// 獲取表單資料
 	title := r.FormValue("title")
 	categoryIDStr := r.FormValue("category_id")
-	publishDate := r.FormValue("publish_date")
+	publishDateStr := r.FormValue("publish_date")
 	content := r.FormValue("content")
 	isDraftStr := r.FormValue("is_draft")
 
@@ -753,11 +813,22 @@ func AdminDocAddHandler(w http.ResponseWriter, r *http.Request) {
 	// 確定是否為草稿
 	isDraft := isDraftStr == "true"
 
-	// 如果是草稿，發布日期設為空字串；否則，若發布日期為空，使用當前日期
+	// 處理發布日期
+	var publishDate obj.DateField
 	if isDraft {
-		publishDate = ""
-	} else if publishDate == "" {
-		publishDate = time.Now().Format("2006-01-02")
+		// 如果是草稿，發布日期可以為空
+		publishDate.Valid = false
+	} else if publishDateStr != "" {
+		// 非草稿，且有提供日期
+		err = publishDate.FromString(publishDateStr)
+		if err != nil {
+			log.Println("Invalid publish date:", err)
+			// 日期無效，使用當前日期
+			publishDate.FromTime(time.Now())
+		}
+	} else {
+		// 非草稿，未提供日期，使用當前日期
+		publishDate.FromTime(time.Now())
 	}
 
 	// URL 編碼文件內容
@@ -812,7 +883,7 @@ func AdminDocUpdateHandler(w http.ResponseWriter, r *http.Request) {
 	idStr := r.FormValue("id")
 	title := r.FormValue("title")
 	categoryIDStr := r.FormValue("category_id")
-	publishDate := r.FormValue("publish_date")
+	publishDateStr := r.FormValue("publish_date")
 	content := r.FormValue("content")
 	isDraftStr := r.FormValue("is_draft")
 
@@ -850,25 +921,33 @@ func AdminDocUpdateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 處理發布日期邏輯
-	// 1. 如果當前要設為草稿，但發布日期不為空（如已發布過），保留原發布日期
-	// 2. 如果從草稿變為公開，且沒有發布日期，設為當前日期
-	// 3. 如果仍是草稿，置空發布日期
+	// 處理發布日期
+	var publishDate obj.DateField
 	if isDraft {
-		if !oldDoc.IsDraft && oldDoc.PublishDate != "" {
+		// 如果是草稿
+		if !oldDoc.IsDraft && oldDoc.PublishDate.Valid {
 			// 如果原本是公開的，現在改為草稿，保留原發布日期
 			publishDate = oldDoc.PublishDate
 		} else {
 			// 如果一直是草稿，置空發布日期
-			publishDate = ""
+			publishDate.Valid = false
 		}
-	} else if !isDraft && (publishDate == "" || oldDoc.IsDraft) {
-		// 如果是從草稿變為公開，且沒有發布日期，使用當前日期
-		if oldDoc.PublishDate == "" {
-			publishDate = time.Now().Format("2006-01-02")
-		} else {
-			// 如果已有發布日期，保留原值
+	} else {
+		// 如果非草稿
+		if publishDateStr != "" {
+			// 有提供日期
+			err = publishDate.FromString(publishDateStr)
+			if err != nil {
+				log.Println("Invalid publish date:", err)
+				// 日期無效但非草稿，使用當前日期
+				publishDate.FromTime(time.Now())
+			}
+		} else if oldDoc.PublishDate.Valid {
+			// 沒提供日期，但原有日期有效，保留原日期
 			publishDate = oldDoc.PublishDate
+		} else {
+			// 沒提供日期，原日期也無效，使用當前日期
+			publishDate.FromTime(time.Now())
 		}
 	}
 
