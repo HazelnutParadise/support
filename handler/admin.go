@@ -1004,10 +1004,10 @@ func AdminChangePasswordHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		// 獲取表單數據
-		currentPassword := r.FormValue("current_password")
-		newPassword := r.FormValue("new_password")
-		confirmPassword := r.FormValue("confirm_password")
+		// 獲取表單數據 - 修正欄位名稱匹配問題
+		currentPassword := r.FormValue("currentPassword")
+		newPassword := r.FormValue("newPassword")
+		confirmPassword := r.FormValue("confirmPassword")
 
 		// 驗證表單數據
 		if currentPassword == "" || newPassword == "" || confirmPassword == "" {
